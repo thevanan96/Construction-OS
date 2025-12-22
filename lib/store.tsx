@@ -41,7 +41,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     .from('profiles')
                     .select('*')
                     .eq('id', session.user.id)
-                    .single();
+                    .maybeSingle();
 
                 const currentUser: User = {
                     id: session.user.id,
@@ -123,6 +123,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             return;
         }
 
+        const previousEmployees = [...employees];
+
         // Optimistic Update
         const tempId = 'temp-' + Date.now();
         setEmployees(prev => [{
@@ -146,7 +148,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) {
             console.error('Error adding employee:', error);
             alert('Failed to add employee: ' + error.message);
-            fetchData(); // Revert
+            setEmployees(previousEmployees); // Hard Rollback
         } else {
             fetchData();
         }
@@ -261,7 +263,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
-        await supabase.auth.signOut();
+        try {
+            await supabase.auth.signOut();
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+        // Force cleanup even if auth listener delays or fails
+        setUser(null);
+        setEmployees([]);
         router.push('/login');
     };
 
