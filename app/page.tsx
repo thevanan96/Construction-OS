@@ -1,66 +1,90 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useApp } from '@/lib/store';
+import { Users, UserCheck, DollarSign, Wallet } from 'lucide-react';
 
 export default function Home() {
+  const { employees, attendance, payments } = useApp();
+
+  const totalEmployees = employees.length;
+
+  // Get today's attendance count
+  const today = new Date().toISOString().split('T')[0];
+  const presentToday = attendance.filter(a => a.date === today && a.status === 'present').length;
+
+  // Calculate generic potential total pending (simplified logic, real logic needs more parsing)
+  // For now let's show Total Payments Made
+  const totalPaid = payments.reduce((acc, curr) => acc + curr.amount, 0);
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="container">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">Dashboard</h1>
+        <p className="text-slate-500">Overview of your site operations</p>
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="Total Employees"
+          value={totalEmployees}
+          icon={Users}
+          color="blue"
         />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+        <StatCard
+          title="Present Today"
+          value={presentToday}
+          icon={UserCheck}
+          color="green"
+        />
+        <StatCard
+          title="Total Paid"
+          value={`$${totalPaid.toLocaleString()}`}
+          icon={Wallet}
+          color="orange"
+        />
+        <StatCard
+          title="Working Sites"
+          value="1"
+          icon={DollarSign}
+          color="slate"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card">
+          <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
+          <div className="flex gap-4">
+            <a href="/employees" className="btn btn-outline">Add Employee</a>
+            <a href="/attendance" className="btn btn-primary">Mark Attendance</a>
+          </div>
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="card">
+          <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
+          <p className="text-slate-500 text-sm">No recent activity logged.</p>
         </div>
-      </main>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon: Icon, color }: any) {
+  const colorMap: any = {
+    blue: 'bg-blue-100 text-blue-600',
+    green: 'bg-green-100 text-green-600',
+    orange: 'bg-orange-100 text-orange-600',
+    slate: 'bg-slate-100 text-slate-600',
+  };
+
+  return (
+    <div className="card flex items-center gap-4">
+      <div className={`p-3 rounded-full ${colorMap[color] || 'bg-gray-100'}`}>
+        <Icon size={24} />
+      </div>
+      <div>
+        <p className="text-sm text-slate-500 font-medium">{title}</p>
+        <p className="text-2xl font-bold text-slate-900">{value}</p>
+      </div>
     </div>
   );
 }
