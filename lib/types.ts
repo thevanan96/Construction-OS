@@ -15,6 +15,9 @@ export interface Attendance {
     date: string; // ISO YYYY-MM-DD
     status: AttendanceStatus;
     site?: string;
+    startTime?: string;
+    endTime?: string;
+    workingHours?: number;
 }
 
 export interface Site {

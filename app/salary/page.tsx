@@ -15,10 +15,28 @@ export default function SalaryPage() {
         // 1. Calculate Earned
         const empAttendance = attendance.filter(a => a.employeeId === employeeId);
         let totalEarned = 0;
+        let totalHours = 0;
 
         empAttendance.forEach(record => {
-            if (record.status === 'present') totalEarned += dailyRate;
-            if (record.status === 'half-day') totalEarned += (dailyRate / 2);
+            let recordEarned = 0;
+            // Precise Hourly Calculation (if available)
+            if (record.workingHours !== undefined && record.workingHours !== null) {
+                const hourlyRate = dailyRate / 10;
+                recordEarned = hourlyRate * record.workingHours;
+                totalHours += record.workingHours;
+            }
+            // Fallback Legacy Calculation
+            else {
+                if (record.status === 'present') {
+                    recordEarned = dailyRate;
+                    totalHours += 10;
+                }
+                if (record.status === 'half-day') {
+                    recordEarned = dailyRate / 2;
+                    totalHours += 5;
+                }
+            }
+            totalEarned += recordEarned;
         });
 
         // 2. Calculate Paid
@@ -29,8 +47,8 @@ export default function SalaryPage() {
             totalEarned,
             totalPaid,
             balance: totalEarned - totalPaid,
-            daysPresent: empAttendance.filter(a => a.status === 'present').length,
-            daysHalf: empAttendance.filter(a => a.status === 'half-day').length,
+            totalHours,
+            daysPresent: empAttendance.filter(a => a.status === 'present' || (a.workingHours && a.workingHours >= 10)).length,
         };
     };
 
@@ -57,7 +75,7 @@ export default function SalaryPage() {
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Salary & Payments</h1>
-                    <p className="page-subtitle">Track earnings and settle dues</p>
+                    <p className="page-subtitle">Track earnings based on hours</p>
                 </div>
             </div>
 
@@ -66,7 +84,7 @@ export default function SalaryPage() {
             ) : (
                 <div className="dashboard-grid">
                     {employees.map(emp => {
-                        const { totalEarned, totalPaid, balance, daysPresent, daysHalf } = getFinancials(emp.id, emp.dailyRate);
+                        const { totalEarned, totalPaid, balance, totalHours } = getFinancials(emp.id, emp.dailyRate);
 
                         return (
                             <div key={emp.id} className="card">
@@ -83,12 +101,12 @@ export default function SalaryPage() {
 
                                 <div className="mb-6" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-[var(--color-text-muted)]">Attendance</span>
-                                        <span className="font-medium">{daysPresent} Days + {daysHalf} Half</span>
+                                        <span className="text-[var(--color-text-muted)]">Total Hours</span>
+                                        <span className="font-medium bg-blue-50 text-blue-700 px-2 rounded-full text-xs py-0.5">{totalHours.toFixed(1)} Hrs</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-[var(--color-text-muted)]">Total Earned</span>
-                                        <span className="font-medium text-[var(--color-dark)]">${totalEarned.toLocaleString()}</span>
+                                        <span className="font-medium text-[var(--color-dark)]">${totalEarned.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-[var(--color-text-muted)]">Paid So Far</span>
@@ -97,7 +115,7 @@ export default function SalaryPage() {
                                     <div className="pt-3 flex justify-between items-center" style={{ borderTop: '1px solid var(--color-border)' }}>
                                         <span className="font-bold text-[var(--color-dark)]">Balance Due</span>
                                         <span className="font-bold text-lg" style={{ color: balance > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
-                                            ${balance.toLocaleString()}
+                                            ${balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                         </span>
                                     </div>
                                 </div>
@@ -148,7 +166,7 @@ export default function SalaryPage() {
                                         <tr>
                                             <th>Date</th>
                                             <th>Site</th>
-                                            <th>Status</th>
+                                            <th>Time / Status</th>
                                             <th className="text-right">Earned</th>
                                         </tr>
                                     </thead>
@@ -158,8 +176,25 @@ export default function SalaryPage() {
                                             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                                             .map(record => {
                                                 let earned = 0;
-                                                if (record.status === 'present') earned = detailsEmployee.dailyRate;
-                                                if (record.status === 'half-day') earned = detailsEmployee.dailyRate / 2;
+                                                let displayTime = '';
+
+                                                if (record.workingHours !== undefined) {
+                                                    const hourlyRate = detailsEmployee.dailyRate / 10;
+                                                    earned = hourlyRate * record.workingHours;
+                                                    displayTime = `${record.workingHours} Hrs`;
+                                                    if (record.startTime && record.endTime) {
+                                                        displayTime += ` (${record.startTime} - ${record.endTime})`;
+                                                    }
+                                                } else {
+                                                    if (record.status === 'present') {
+                                                        earned = detailsEmployee.dailyRate;
+                                                        displayTime = 'Full Day (10h)';
+                                                    }
+                                                    if (record.status === 'half-day') {
+                                                        earned = detailsEmployee.dailyRate / 2;
+                                                        displayTime = 'Half Day (5h)';
+                                                    }
+                                                }
 
                                                 return (
                                                     <tr key={record.id}>
@@ -167,14 +202,10 @@ export default function SalaryPage() {
                                                         <td className="text-sm">
                                                             {record.site ? (sites.find(s => s.id === record.site)?.name || 'Unknown Site') : '-'}
                                                         </td>
-                                                        <td>
-                                                            <span className={`badge ${record.status === 'present' ? 'badge-active' :
-                                                                record.status === 'absent' ? 'badge-inactive' : 'bg-yellow-100 text-yellow-700'
-                                                                }`}>
-                                                                {record.status}
-                                                            </span>
+                                                        <td className="text-sm font-medium">
+                                                            {displayTime || record.status}
                                                         </td>
-                                                        <td className="text-right font-mono">${earned}</td>
+                                                        <td className="text-right font-mono">${earned.toFixed(0)}</td>
                                                     </tr>
                                                 )
                                             })}
@@ -218,11 +249,11 @@ export default function SalaryPage() {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="card w-full max-w-sm shadow-xl bg-white">
                         <h3 className="text-lg font-bold mb-4">Pay {activeEmployee.name}</h3>
-
+                        {/* Same Payment Modal Content */}
                         <div className="bg-gray-50 p-3 rounded mb-4 text-sm">
                             <div className="flex justify-between mb-1">
                                 <span className="text-gray-500">Current Dues:</span>
-                                <span className="font-bold">${getFinancials(activeEmployee.id, activeEmployee.dailyRate).balance}</span>
+                                <span className="font-bold">${getFinancials(activeEmployee.id, activeEmployee.dailyRate).balance.toLocaleString()}</span>
                             </div>
                         </div>
 

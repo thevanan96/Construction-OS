@@ -99,7 +99,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 employeeId: a.employee_id,
                 date: a.date,
                 status: a.status,
-                site: a.site_id
+                site: a.site_id,
+                startTime: a.start_time,
+                endTime: a.end_time,
+                workingHours: a.working_hours
             })));
         }
 
@@ -186,7 +189,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 employeeId: data.employeeId,
                 date: data.date,
                 status: data.status,
-                site: data.site
+                site: data.site,
+                startTime: data.startTime,
+                endTime: data.endTime,
+                workingHours: data.workingHours
             }];
         });
 
@@ -196,7 +202,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             employee_id: data.employeeId,
             date: data.date,
             status: data.status,
-            site_id: data.site // Ensure this is a UUID!
+            site_id: data.site, // Ensure this is a UUID!
+            start_time: data.startTime,
+            end_time: data.endTime,
+            working_hours: data.workingHours
         }, { onConflict: 'employee_id,date' });
 
         if (error) {
