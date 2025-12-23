@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Plus, Search, User } from 'lucide-react';
+import { Plus, Search, User, Pencil, Trash2, X } from 'lucide-react';
+import { Employee } from '@/lib/types';
 
 export default function EmployeesPage() {
-    const { employees, addEmployee } = useApp();
-    const [isAdding, setIsAdding] = useState(false);
+    const { employees, addEmployee, updateEmployee, deleteEmployee } = useApp();
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -19,19 +21,7 @@ export default function EmployeesPage() {
         nic: ''
     });
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        console.log('Submitting employee form...');
-        await addEmployee({
-            name: formData.name,
-            role: formData.role,
-            dailyRate: Number(formData.dailyRate),
-            joinedDate: formData.joinedDate,
-            active: true,
-            phone: formData.phone,
-            nic: formData.nic
-        });
-        setIsAdding(false);
+    const resetForm = () => {
         setFormData({
             name: '',
             role: '',
@@ -40,6 +30,61 @@ export default function EmployeesPage() {
             phone: '',
             nic: ''
         });
+        setEditingId(null);
+    };
+
+    const handleOpenAdd = () => {
+        resetForm();
+        setIsModalOpen(true);
+    };
+
+    const handleEdit = (emp: Employee) => {
+        setEditingId(emp.id);
+        setFormData({
+            name: emp.name,
+            role: emp.role,
+            dailyRate: emp.dailyRate.toString(),
+            joinedDate: emp.joinedDate.split('T')[0],
+            phone: emp.phone || '',
+            nic: emp.nic || ''
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id: string, name: string) => {
+        if (confirm(`Are you sure you want to delete ${name}?\n\nThis will PERMANENTLY delete all their history (Attendance, Salary, Payments). This action cannot be undone.`)) {
+            await deleteEmployee(id);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (editingId) {
+            // Update
+            await updateEmployee(editingId, {
+                name: formData.name,
+                role: formData.role,
+                dailyRate: Number(formData.dailyRate),
+                joinedDate: formData.joinedDate,
+                phone: formData.phone,
+                nic: formData.nic
+            });
+        } else {
+            // Add
+            await addEmployee({
+                name: formData.name,
+                role: formData.role,
+                dailyRate: Number(formData.dailyRate),
+                joinedDate: formData.joinedDate,
+                active: true,
+                phone: formData.phone,
+                nic: formData.nic
+            });
+        }
+
+        setIsModalOpen(false);
+        resetForm();
     };
 
     const filteredEmployees = employees.filter(emp =>
@@ -56,7 +101,7 @@ export default function EmployeesPage() {
                     <p className="page-subtitle">Manage your workforce</p>
                 </div>
                 <button
-                    onClick={() => setIsAdding(true)}
+                    onClick={handleOpenAdd}
                     className="btn btn-primary"
                 >
                     <Plus size={18} />
@@ -64,10 +109,16 @@ export default function EmployeesPage() {
                 </button>
             </div>
 
-            {isAdding && (
+            {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="card w-full max-w-md shadow-lg bg-white overflow-y-auto max-h-[90vh]">
-                        <h2 className="text-xl font-bold mb-4">Add New Employee</h2>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-bold">{editingId ? 'Edit Employee' : 'Add New Employee'}</h2>
+                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                                <X size={24} />
+                            </button>
+                        </div>
+
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
                                 <label className="label">Full Name</label>
@@ -144,7 +195,7 @@ export default function EmployeesPage() {
                             <div className="flex justify-end gap-2 mt-6">
                                 <button
                                     type="button"
-                                    onClick={() => setIsAdding(false)}
+                                    onClick={() => setIsModalOpen(false)}
                                     className="btn btn-outline"
                                 >
                                     Cancel
@@ -153,7 +204,7 @@ export default function EmployeesPage() {
                                     type="submit"
                                     className="btn btn-primary"
                                 >
-                                    Save Employee
+                                    {editingId ? 'Update Employee' : 'Save Employee'}
                                 </button>
                             </div>
                         </form>
@@ -190,6 +241,7 @@ export default function EmployeesPage() {
                                     <th>NIC</th>
                                     <th>Daily Rate</th>
                                     <th>Status</th>
+                                    <th className="text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -207,6 +259,24 @@ export default function EmployeesPage() {
                                             <span className={`badge ${emp.active ? 'badge-active' : 'badge-inactive'}`}>
                                                 {emp.active ? 'Active' : 'Inactive'}
                                             </span>
+                                        </td>
+                                        <td className="text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => handleEdit(emp)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(emp.id, emp.name)}
+                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

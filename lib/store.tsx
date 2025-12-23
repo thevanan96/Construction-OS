@@ -14,6 +14,7 @@ interface AppContextType {
     isLoading: boolean;
     addEmployee: (employee: Omit<Employee, 'id'>) => Promise<void>;
     updateEmployee: (id: string, data: Partial<Employee>) => Promise<void>;
+    deleteEmployee: (id: string) => Promise<void>;
     markAttendance: (record: Omit<Attendance, 'id'>) => Promise<void>;
     addPayment: (payment: Omit<Payment, 'id'>) => Promise<void>;
     addSite: (site: Omit<Site, 'id'>) => Promise<void>;
@@ -176,22 +177,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const updateEmployee = async (id: string, data: Partial<Employee>) => {
+        if (!user) return;
+
         // Optimistic Update
-        setEmployees(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+        setEmployees(prev => prev.map(emp =>
+            emp.id === id ? { ...emp, ...data } : emp
+        ));
 
-        const updateData: any = {};
-        if (data.name) updateData.name = data.name;
-        if (data.role) updateData.role = data.role;
-        if (data.dailyRate) updateData.daily_rate = data.dailyRate;
-        if (data.active !== undefined) updateData.status = data.active ? 'active' : 'inactive';
+        const updates: any = {};
+        if (data.name) updates.name = data.name;
+        if (data.role) updates.role = data.role;
+        if (data.dailyRate) updates.daily_rate = data.dailyRate;
+        if (data.joinedDate) updates.joined_date = data.joinedDate;
+        if (data.active !== undefined) updates.status = data.active ? 'active' : 'inactive';
+        if (data.phone !== undefined) updates.phone = data.phone;
+        if (data.nic !== undefined) updates.nic = data.nic;
 
-        const { error } = await supabase.from('employees').update(updateData).eq('id', id);
-        if (!error) fetchData();
-        else {
-            alert('Failed to update employee');
+        const { error } = await supabase.from('employees').update(updates).eq('id', id);
+
+        if (error) {
+            console.error('Update Employee Error:', error);
+            alert('Failed to update employee: ' + error.message);
             fetchData();
         }
     };
+
+    const deleteEmployee = async (id: string) => {
+        if (!user) return;
+
+        // Optimistic Delete
+        setEmployees(prev => prev.filter(e => e.id !== id));
+        // Remove related local data
+        setAttendance(prev => prev.filter(a => a.employeeId !== id));
+        setPayments(prev => prev.filter(p => p.employeeId !== id));
+
+        // 1. Delete Attendance
+        await supabase.from('attendance').delete().eq('employee_id', id);
+
+        // 2. Delete Payments
+        await supabase.from('payments').delete().eq('employee_id', id);
+
+        // 3. Delete Employee
+        const { error } = await supabase.from('employees').delete().eq('id', id);
+
+        if (error) {
+            console.error('Delete Employee Error:', error);
+            alert('Failed to delete employee: ' + error.message);
+            fetchData();
+        }
+    };
+
+
+
 
     const markAttendance = async (data: Omit<Attendance, 'id'>) => {
         if (!user) {
@@ -308,7 +345,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return (
         <AppContext.Provider value={{
             employees, attendance, payments, sites, user, isLoading,
-            addEmployee, updateEmployee, markAttendance, addPayment, addSite, removeSite,
+            addEmployee, updateEmployee, deleteEmployee, markAttendance, addPayment, addSite, removeSite,
             logout
         }}>
             {children}

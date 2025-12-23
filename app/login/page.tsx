@@ -4,16 +4,19 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
     // const { login } = useApp(); // Removed
     const router = useRouter();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         const { error } = await supabase.auth.signInWithPassword({
             email: formData.email,
@@ -22,8 +25,10 @@ export default function LoginPage() {
 
         if (error) {
             setError(error.message);
+            setIsLoading(false);
         } else {
             router.push('/');
+            // Keep loading true while redirecting to avoid flicker
         }
     };
 
@@ -105,9 +110,17 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            className="btn btn-primary btn-block btn-large mt-4"
+                            disabled={isLoading}
+                            className="btn btn-primary btn-block btn-large mt-4 flex justify-center items-center gap-2"
                         >
-                            Sign In
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="animate-spin" size={20} />
+                                    Signing in...
+                                </>
+                            ) : (
+                                'Sign In'
+                            )}
                         </button>
                     </form>
 
