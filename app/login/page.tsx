@@ -12,23 +12,33 @@ export default function LoginPage() {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isLongLoading, setIsLongLoading] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
+        setIsLongLoading(false);
+
+        // Show "Waking up database" message if it takes > 4 seconds
+        const slowTimer = setTimeout(() => {
+            setIsLongLoading(true);
+        }, 4000);
 
         const { error } = await supabase.auth.signInWithPassword({
             email: formData.email,
             password: formData.password,
         });
 
+        clearTimeout(slowTimer);
+
         if (error) {
             setError(error.message);
             setIsLoading(false);
+            setIsLongLoading(false);
         } else {
             router.push('/');
-            // Keep loading true while redirecting to avoid flicker
+            // Keep loading true while redirecting
         }
     };
 
@@ -81,6 +91,17 @@ export default function LoginPage() {
                         </div>
                     )}
 
+                    {/* Cold Start Hint */}
+                    {isLongLoading && (
+                        <div className="mb-4 p-3 bg-blue-50 text-blue-700 text-sm rounded-md border border-blue-100 flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                            <Loader2 className="animate-spin shrink-0 mt-0.5" size={16} />
+                            <div>
+                                <p className="font-semibold">Waking up the database...</p>
+                                <p>Since this is a free server, it goes to sleep when inactive. Please wait ~10-20 seconds while it boots up.</p>
+                            </div>
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="auth-form">
                         <div className="form-group">
                             <label className="label">Email Address</label>
@@ -116,7 +137,7 @@ export default function LoginPage() {
                             {isLoading ? (
                                 <>
                                     <Loader2 className="animate-spin" size={20} />
-                                    Signing in...
+                                    {isLongLoading ? 'Still connecting...' : 'Signing in...'}
                                 </>
                             ) : (
                                 'Sign In'
