@@ -61,8 +61,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setIsLoading(false);
         });
 
+        // Safety Timeout: Force stop loading if Supabase hangs (e.g. bad keys)
+        const safetyTimer = setTimeout(() => {
+            setIsLoading(prev => {
+                if (prev) {
+                    console.warn('Supabase auth took too long. Forcing app load.');
+                    return false;
+                }
+                return prev;
+            });
+        }, 5000); // 5 seconds
+
         return () => {
             authListener.subscription.unsubscribe();
+            clearTimeout(safetyTimer);
         };
     }, []);
 
