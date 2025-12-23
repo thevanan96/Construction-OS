@@ -15,6 +15,8 @@ export default function EmployeesPage() {
         role: '',
         dailyRate: '',
         joinedDate: new Date().toISOString().split('T')[0],
+        phone: '',
+        nic: ''
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -26,14 +28,24 @@ export default function EmployeesPage() {
             dailyRate: Number(formData.dailyRate),
             joinedDate: formData.joinedDate,
             active: true,
+            phone: formData.phone,
+            nic: formData.nic
         });
         setIsAdding(false);
-        setFormData({ name: '', role: '', dailyRate: '', joinedDate: new Date().toISOString().split('T')[0] });
+        setFormData({
+            name: '',
+            role: '',
+            dailyRate: '',
+            joinedDate: new Date().toISOString().split('T')[0],
+            phone: '',
+            nic: ''
+        });
     };
 
     const filteredEmployees = employees.filter(emp =>
         emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.role.toLowerCase().includes(searchTerm.toLowerCase())
+        emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (emp.nic && emp.nic.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
     return (
@@ -54,7 +66,7 @@ export default function EmployeesPage() {
 
             {isAdding && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="card w-full max-w-md shadow-lg bg-white">
+                    <div className="card w-full max-w-md shadow-lg bg-white overflow-y-auto max-h-[90vh]">
                         <h2 className="text-xl font-bold mb-4">Add New Employee</h2>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
@@ -68,29 +80,57 @@ export default function EmployeesPage() {
                                     placeholder="e.g. John Doe"
                                 />
                             </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="mb-4">
+                                    <label className="label">Role / Designation</label>
+                                    <input
+                                        required
+                                        type="text"
+                                        className="input"
+                                        value={formData.role}
+                                        onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                        placeholder="e.g. Mason"
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label className="label">Daily Rate ($)</label>
+                                    <input
+                                        required
+                                        type="number"
+                                        className="input"
+                                        value={formData.dailyRate}
+                                        onChange={e => setFormData({ ...formData, dailyRate: e.target.value })}
+                                        placeholder="50"
+                                        min="0"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="mb-4">
-                                <label className="label">Role / Designation</label>
+                                <label className="label">Mobile Number</label>
+                                <input
+                                    required
+                                    type="tel"
+                                    className="input"
+                                    value={formData.phone}
+                                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                    placeholder="e.g. 0771234567"
+                                />
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="label">NIC Number</label>
                                 <input
                                     required
                                     type="text"
                                     className="input"
-                                    value={formData.role}
-                                    onChange={e => setFormData({ ...formData, role: e.target.value })}
-                                    placeholder="e.g. Mason, Laborer"
+                                    value={formData.nic}
+                                    onChange={e => setFormData({ ...formData, nic: e.target.value })}
+                                    placeholder="e.g. 960981306v"
                                 />
                             </div>
-                            <div className="mb-4">
-                                <label className="label">Daily Rate ($)</label>
-                                <input
-                                    required
-                                    type="number"
-                                    className="input"
-                                    value={formData.dailyRate}
-                                    onChange={e => setFormData({ ...formData, dailyRate: e.target.value })}
-                                    placeholder="50"
-                                    min="0"
-                                />
-                            </div>
+
                             <div className="mb-4">
                                 <label className="label">Joining Date</label>
                                 <input
@@ -126,7 +166,7 @@ export default function EmployeesPage() {
                     <Search size={18} className="text-[var(--color-text-muted)]" />
                     <input
                         type="text"
-                        placeholder="Search employees..."
+                        placeholder="Search by name, role, or NIC..."
                         className="input border-none bg-transparent p-0 focus:outline-none"
                         style={{ border: 'none' }}
                         value={searchTerm}
@@ -146,18 +186,23 @@ export default function EmployeesPage() {
                                 <tr>
                                     <th>Name</th>
                                     <th>Role</th>
+                                    <th>Mobile</th>
+                                    <th>NIC</th>
                                     <th>Daily Rate</th>
-                                    <th>Joined</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredEmployees.map(emp => (
                                     <tr key={emp.id}>
-                                        <td className="font-medium text-[var(--color-text-main)]">{emp.name}</td>
-                                        <td className="text-[var(--color-text-muted)]">{emp.role}</td>
+                                        <td className="font-medium text-[var(--color-text-main)]">
+                                            {emp.name}
+                                            <div className="text-xs text-[var(--color-text-muted)] md:hidden">{emp.role}</div>
+                                        </td>
+                                        <td className="text-[var(--color-text-muted)] hidden md:table-cell">{emp.role}</td>
+                                        <td className="text-[var(--color-text-muted)] font-mono text-sm">{emp.phone || '-'}</td>
+                                        <td className="text-[var(--color-text-muted)] font-mono text-sm uppercase">{emp.nic || '-'}</td>
                                         <td className="text-[var(--color-text-main)] font-mono">${emp.dailyRate}</td>
-                                        <td>{emp.joinedDate.split('T')[0]}</td>
                                         <td>
                                             <span className={`badge ${emp.active ? 'badge-active' : 'badge-inactive'}`}>
                                                 {emp.active ? 'Active' : 'Inactive'}

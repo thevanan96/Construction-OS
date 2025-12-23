@@ -5,6 +5,8 @@ export interface Employee {
     dailyRate: number;
     joinedDate: string;
     active: boolean;
+    phone?: string;
+    nic?: string;
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'half-day';

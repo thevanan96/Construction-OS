@@ -76,7 +76,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 role: e.role,
                 dailyRate: e.daily_rate,
                 joinedDate: e.joined_date,
-                active: e.status === 'active'
+                active: e.status === 'active',
+                phone: e.phone,
+                nic: e.nic
             })));
         }
 
@@ -136,7 +138,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             role: data.role,
             dailyRate: data.dailyRate,
             joinedDate: data.joinedDate || new Date().toISOString(),
-            active: data.active ?? true
+            active: data.active ?? true,
+            phone: data.phone,
+            nic: data.nic
         }, ...prev]);
 
         const { error } = await supabase.from('employees').insert({
@@ -145,7 +149,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             role: data.role,
             daily_rate: data.dailyRate,
             joined_date: data.joinedDate || new Date().toISOString(),
-            status: data.active ? 'active' : 'inactive'
+            status: data.active ? 'active' : 'inactive',
+            phone: data.phone,
+            nic: data.nic
         });
 
         if (error) {
