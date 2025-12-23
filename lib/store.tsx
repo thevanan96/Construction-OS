@@ -278,15 +278,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
-        try {
-            await supabase.auth.signOut();
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
-        // Force cleanup even if auth listener delays or fails
+        // 1. Clear local state immediately
         setUser(null);
         setEmployees([]);
+        setAttendance([]);
+        setPayments([]);
+        setSites([]);
+
+        // 2. Clear Supabase session (fire and forget)
+        supabase.auth.signOut().catch(err => console.error('SignOut Error:', err));
+
+        // 3. Force redirect
         router.push('/login');
+        router.refresh(); // Ensure server key clearing if using cookies
     };
 
     return (
