@@ -80,8 +80,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const fetchData = async () => {
-        // Fetch Employees
-        const { data: empData } = await supabase.from('employees').select('*').order('created_at', { ascending: false });
+        // Parallel Fetch for Performance
+        const [
+            { data: empData },
+            { data: siteData },
+            { data: attData },
+            { data: payData }
+        ] = await Promise.all([
+            supabase.from('employees').select('*').order('created_at', { ascending: false }),
+            supabase.from('sites').select('*').order('created_at', { ascending: false }),
+            supabase.from('attendance').select('*').order('date', { ascending: false }),
+            supabase.from('payments').select('*').order('date', { ascending: false })
+        ]);
+
         if (empData) {
             setEmployees(empData.map(e => ({
                 id: e.id,
@@ -95,8 +106,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             })));
         }
 
-        // Fetch Sites
-        const { data: siteData } = await supabase.from('sites').select('*').order('created_at', { ascending: false });
         if (siteData) {
             setSites(siteData.map(s => ({
                 id: s.id,
@@ -106,8 +115,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             })));
         }
 
-        // Fetch Attendance
-        const { data: attData } = await supabase.from('attendance').select('*').order('date', { ascending: false });
         if (attData) {
             setAttendance(attData.map(a => ({
                 id: a.id,
@@ -121,8 +128,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             })));
         }
 
-        // Fetch Payments
-        const { data: payData } = await supabase.from('payments').select('*').order('date', { ascending: false });
         if (payData) {
             setPayments(payData.map(p => ({
                 id: p.id,
