@@ -35,23 +35,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Initial Data Fetch & Auth Subscription
     useEffect(() => {
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        const handleAuthChange = async (session: any) => {
             if (session?.user) {
-                // Fetch Profile
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .maybeSingle();
-
-                const currentUser: User = {
+                // Optimistically set user to unblock UI immediately
+                const optimisticUser: User = {
                     id: session.user.id,
                     email: session.user.email!,
-                    name: profile?.full_name || session.user.user_metadata?.full_name || 'User',
-                    companyName: profile?.company_name || session.user.user_metadata?.company_name || 'My Company',
+                    name: session.user.user_metadata?.full_name || 'User',
+                    companyName: session.user.user_metadata?.company_name || 'My Company',
                 };
-                setUser(currentUser);
-                await fetchData();
+                setUser(optimisticUser);
+
+                // Parallel: Fetch Profile and Business Data
+                const [profileRes, _] = await Promise.all([
+                    supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
+                    fetchData()
+                ]);
+
+                // Update with real profile data if different
+                const profile = profileRes.data;
+                if (profile) {
+                    setUser(prev => ({
+                        ...prev!,
+                        name: profile.full_name || prev!.name,
+                        companyName: profile.company_name || prev!.companyName
+                    }));
+                }
             } else {
                 setUser(null);
                 setEmployees([]);
@@ -60,9 +69,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setSites([]);
             }
             setIsLoading(false);
+        };
+
+        // 1. Listen for changes
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            handleAuthChange(session);
         });
 
-        // Safety Timeout: Force stop loading if Supabase hangs (e.g. bad keys)
+        // 2. Explicit check on mount (fixes timeout issues if listener is slow)
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) handleAuthChange(session);
+            else setIsLoading(false); // Stop loading if no session found
+        });
+
+        // Safety Timeout: Force stop loading if Supabase hangs
         const safetyTimer = setTimeout(() => {
             setIsLoading(prev => {
                 if (prev) {
@@ -71,7 +91,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 }
                 return prev;
             });
-        }, 5000); // 5 seconds
+        }, 5000);
 
         return () => {
             authListener.subscription.unsubscribe();

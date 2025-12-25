@@ -87,6 +87,7 @@ export default function LoginPage() {
                             <input
                                 type="email"
                                 required
+                                autoComplete="email"
                                 className="input"
                                 placeholder="name@company.com"
                                 value={formData.email}
@@ -101,6 +102,7 @@ export default function LoginPage() {
                             <input
                                 type="password"
                                 required
+                                autoComplete="current-password"
                                 className="input"
                                 placeholder="••••••••"
                                 value={formData.password}
