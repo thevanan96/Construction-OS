@@ -1,10 +1,10 @@
 'use client';
 
 import { useApp } from '@/lib/store';
-import { Users, UserCheck, DollarSign, Wallet } from 'lucide-react';
+import { Users, UserCheck, DollarSign, Wallet, Banknote } from 'lucide-react';
 
 export default function Home() {
-  const { employees, attendance, payments } = useApp();
+  const { employees, attendance, payments, sites } = useApp();
 
   const totalEmployees = employees.length;
 
@@ -12,9 +12,19 @@ export default function Home() {
   const today = new Date().toISOString().split('T')[0];
   const presentToday = attendance.filter(a => a.date === today && a.status === 'present').length;
 
-  // Calculate generic potential total pending (simplified logic, real logic needs more parsing)
-  // For now let's show Total Payments Made
+  // Calculate Total Earnings (What should have been paid)
+  // Assumes Daily Rate is for 10 hours of work
+  const totalEarnings = attendance.reduce((acc, record) => {
+    const employee = employees.find(e => e.id === record.employeeId);
+    if (!employee) return acc;
+
+    const hourlyRate = employee.dailyRate / 10;
+    return acc + (hourlyRate * (record.workingHours || 0));
+  }, 0);
+
   const totalPaid = payments.reduce((acc, curr) => acc + curr.amount, 0);
+
+  const needToPay = totalEarnings - totalPaid;
 
   return (
     <div className="container">
@@ -43,8 +53,14 @@ export default function Home() {
           color="orange"
         />
         <StatCard
+          title="Need to Pay"
+          value={`$${Math.max(0, needToPay).toLocaleString()}`}
+          icon={Banknote}
+          color="red"
+        />
+        <StatCard
           title="Working Sites"
-          value="1"
+          value={sites.length}
           icon={DollarSign}
           color="slate"
         />
@@ -74,6 +90,7 @@ function StatCard({ title, value, icon: Icon, color }: any) {
     green: 'bg-green-100 text-green-600',
     orange: 'bg-orange-100 text-orange-600',
     slate: 'bg-slate-100 text-slate-600',
+    red: 'bg-red-100 text-red-600',
   };
 
   return (

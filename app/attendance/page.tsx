@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { ChevronLeft, ChevronRight, Check, X, Clock } from 'lucide-react';
 import { AttendanceStatus } from '@/lib/types';
+import { getSriLankaDate } from '@/lib/dateUtils';
 
 export default function AttendancePage() {
     const { employees, attendance, markAttendance, sites } = useApp();
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
 
     const handleDateChange = (days: number) => {
