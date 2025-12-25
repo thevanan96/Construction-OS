@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Plus, Search, User, Pencil, Trash2, X } from 'lucide-react';
+import { Plus, Search, User, Edit, Trash2, X } from 'lucide-react';
 import { Employee } from '@/lib/types';
 
 export default function EmployeesPage() {
@@ -241,7 +241,7 @@ export default function EmployeesPage() {
                                     <th>NIC</th>
                                     <th>Daily Rate</th>
                                     <th>Status</th>
-                                    <th className="text-right">Action</th>
+                                    <th style={{ textAlign: 'center', width: '140px' }}>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -260,21 +260,23 @@ export default function EmployeesPage() {
                                                 {emp.active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="text-right">
-                                            <div className="flex justify-end gap-2">
+                                        <td style={{ textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
                                                 <button
                                                     onClick={() => handleEdit(emp)}
-                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                    className="btn"
+                                                    style={{ backgroundColor: '#3B82F6', color: 'white', padding: '8px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                     title="Edit"
                                                 >
-                                                    <Pencil size={18} />
+                                                    <Edit size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(emp.id, emp.name)}
-                                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    className="btn"
+                                                    style={{ backgroundColor: '#EF4444', color: 'white', padding: '8px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                                     title="Delete"
                                                 >
-                                                    <Trash2 size={18} />
+                                                    <Trash2 size={16} />
                                                 </button>
                                             </div>
                                         </td>
