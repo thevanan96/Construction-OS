@@ -18,6 +18,7 @@ interface AppContextType {
     markAttendance: (record: Omit<Attendance, 'id'>) => Promise<void>;
     addPayment: (payment: Omit<Payment, 'id'>) => Promise<void>;
     addSite: (site: Omit<Site, 'id'>) => Promise<void>;
+    updateSite: (id: string, data: Partial<Site>) => Promise<void>;
     removeSite: (id: string) => Promise<void>;
     logout: () => void;
 }
@@ -346,6 +347,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         else fetchData();
     };
 
+    const updateSite = async (id: string, data: Partial<Site>) => {
+        if (!user) return;
+
+        // Optimistically Update
+        setSites(prev => prev.map(site =>
+            site.id === id ? { ...site, ...data } : site
+        ));
+
+        const updates: any = {};
+        if (data.name) updates.name = data.name;
+        if (data.location) updates.location = data.location;
+        if (data.active !== undefined) updates.status = data.active ? 'active' : 'on-hold';
+
+        const { error } = await supabase.from('sites').update(updates).eq('id', id);
+
+        if (error) {
+            console.error('Update Site Error:', error);
+            alert('Failed to update site: ' + error.message);
+            fetchData();
+        }
+    };
+
     const removeSite = async (id: string) => {
         const { error } = await supabase.from('sites').delete().eq('id', id);
         if (!error) fetchData();
@@ -370,7 +393,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return (
         <AppContext.Provider value={{
             employees, attendance, payments, sites, user, isLoading,
-            addEmployee, updateEmployee, deleteEmployee, markAttendance, addPayment, addSite, removeSite,
+            addEmployee, updateEmployee, deleteEmployee, markAttendance, addPayment, addSite, updateSite, removeSite,
             logout
         }}>
             {children}

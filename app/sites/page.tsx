@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Plus, MapPin, Trash2, Building } from 'lucide-react';
+import { Plus, MapPin, Trash2, Building, Edit } from 'lucide-react';
+import { Site } from '@/lib/types';
 
 export default function SitesPage() {
-    const { sites, addSite, removeSite } = useApp();
+    const { sites, addSite, updateSite, removeSite } = useApp();
     const [isAdding, setIsAdding] = useState(false);
+    const [editingSite, setEditingSite] = useState<Site | null>(null);
     const [formData, setFormData] = useState({
         name: '',
         location: '',
@@ -14,13 +16,32 @@ export default function SitesPage() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        addSite({
-            name: formData.name,
-            location: formData.location,
-            active: true,
-        });
+
+        if (editingSite) {
+            updateSite(editingSite.id, {
+                name: formData.name,
+                location: formData.location
+            });
+        } else {
+            addSite({
+                name: formData.name,
+                location: formData.location,
+                active: true,
+            });
+        }
+
         setIsAdding(false);
+        setEditingSite(null);
         setFormData({ name: '', location: '' });
+    };
+
+    const handleEdit = (site: Site) => {
+        setEditingSite(site);
+        setFormData({
+            name: site.name,
+            location: site.location
+        });
+        setIsAdding(true);
     };
 
     return (
@@ -31,7 +52,11 @@ export default function SitesPage() {
                     <p className="page-subtitle">Manage construction sites</p>
                 </div>
                 <button
-                    onClick={() => setIsAdding(true)}
+                    onClick={() => {
+                        setEditingSite(null);
+                        setFormData({ name: '', location: '' });
+                        setIsAdding(true);
+                    }}
                     className="btn btn-primary"
                 >
                     <Plus size={18} />
@@ -42,7 +67,7 @@ export default function SitesPage() {
             {isAdding && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
                     <div className="card w-full max-w-md shadow-lg bg-white">
-                        <h2 className="text-xl font-bold mb-4">Add New Site</h2>
+                        <h2 className="text-xl font-bold mb-4">{editingSite ? 'Edit Site' : 'Add New Site'}</h2>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-4">
                                 <label className="label">Site Name</label>
@@ -69,7 +94,10 @@ export default function SitesPage() {
                             <div className="flex justify-end gap-2 mt-6">
                                 <button
                                     type="button"
-                                    onClick={() => setIsAdding(false)}
+                                    onClick={() => {
+                                        setIsAdding(false);
+                                        setEditingSite(null);
+                                    }}
                                     className="btn btn-outline"
                                 >
                                     Cancel
@@ -78,7 +106,7 @@ export default function SitesPage() {
                                     type="submit"
                                     className="btn btn-primary"
                                 >
-                                    Save Site
+                                    {editingSite ? 'Save Changes' : 'Save Site'}
                                 </button>
                             </div>
                         </form>
@@ -103,12 +131,26 @@ export default function SitesPage() {
                                         <span>{site.location}</span>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => removeSite(site.id)}
-                                    className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-full transition-colors"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <button
+                                        onClick={() => handleEdit(site)}
+                                        className="btn"
+                                        style={{ backgroundColor: '#3B82F6', color: 'white', padding: '8px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        title="Edit"
+                                        type="button"
+                                    >
+                                        <Edit size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => removeSite(site.id)}
+                                        className="btn"
+                                        style={{ backgroundColor: '#EF4444', color: 'white', padding: '8px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        title="Delete"
+                                        type="button"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
