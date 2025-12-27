@@ -2,14 +2,19 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { ChevronLeft, ChevronRight, Check, X, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Clock, Search } from 'lucide-react';
 import { AttendanceStatus } from '@/lib/types';
 import { getSriLankaDate } from '@/lib/dateUtils';
 
 export default function AttendancePage() {
     const { employees, attendance, markAttendance, sites } = useApp();
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
+    const [searchQuery, setSearchQuery] = useState('');
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
+
+    const filteredEmployees = employees.filter(emp =>
+        emp.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const handleDateChange = (days: number) => {
         const date = new Date(selectedDate);
@@ -111,35 +116,48 @@ export default function AttendancePage() {
 
     return (
         <div>
-            <div className="page-header">
+            <div className="page-header flex-col md:flex-row gap-4 items-start md:items-end">
                 <div>
                     <h1 className="page-title">Attendance</h1>
                     <p className="page-subtitle">Mark daily attendance & hours</p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-white p-2 rounded-lg border border-[var(--color-border)] shadow-sm">
-                    <button onClick={() => handleDateChange(-1)} className="p-2 hover:bg-gray-100 rounded-full">
-                        <ChevronLeft size={20} />
-                    </button>
-                    <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="border-none font-medium focus:outline-none bg-transparent"
-                    />
-                    <button onClick={() => handleDateChange(1)} className="p-2 hover:bg-gray-100 rounded-full">
-                        <ChevronRight size={20} />
-                    </button>
+                <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+                    <div className="relative flex-1 sm:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search employee..."
+                            className="input pl-10 py-2 w-full"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-4 bg-white p-2 rounded-lg border border-[var(--color-border)] shadow-sm">
+                        <button onClick={() => handleDateChange(-1)} className="p-2 hover:bg-gray-100 rounded-full">
+                            <ChevronLeft size={20} />
+                        </button>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="border-none font-medium focus:outline-none bg-transparent"
+                        />
+                        <button onClick={() => handleDateChange(1)} className="p-2 hover:bg-gray-100 rounded-full">
+                            <ChevronRight size={20} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <div className="dashboard-grid">
-                {employees.length === 0 ? (
+                {filteredEmployees.length === 0 ? (
                     <div className="text-center py-12 text-gray-400 col-span-full">
-                        No employees found. Add employees first.
+                        {searchQuery ? 'No employees found matching your search.' : 'No employees found. Add employees first.'}
                     </div>
                 ) : (
-                    employees.map(emp => {
+                    filteredEmployees.map(emp => {
                         const record = getRecord(emp.id);
                         const status = record?.status;
                         const currentSiteId = getSite(emp.id);
