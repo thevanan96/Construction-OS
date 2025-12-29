@@ -2,16 +2,29 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { BadgeDollarSign, FileText, X } from 'lucide-react';
+import { BadgeDollarSign, FileText, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { getSriLankaDate } from '@/lib/dateUtils';
 
 export default function SalaryPage() {
     const { employees, attendance, payments, addPayment, sites } = useApp();
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [viewDetailsEmployee, setViewDetailsEmployee] = useState<string | null>(null);
     const [payAmount, setPayAmount] = useState('');
+    const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
+    const [isPaymentLogOpen, setIsPaymentLogOpen] = useState(false);
+
+    const handleDateChange = (days: number) => {
+        const date = new Date(selectedDate);
+        date.setDate(date.getDate() + days);
+        setSelectedDate(date.toISOString().split('T')[0]);
+    };
+
+    const todaysPayments = payments.filter(p => p.date === selectedDate);
+    const totalPaidToday = todaysPayments.reduce((sum, p) => sum + p.amount, 0);
 
     // Calculation Logic
     const getFinancials = (employeeId: string, dailyRate: number) => {
+        // ... (existing logic)
         // 1. Calculate Earned
         const empAttendance = attendance.filter(a => a.employeeId === employeeId);
         let totalEarned = 0;
@@ -59,7 +72,7 @@ export default function SalaryPage() {
         addPayment({
             employeeId: selectedEmployee,
             amount: Number(payAmount),
-            date: new Date().toISOString().split('T')[0],
+            date: selectedDate, // Use selected date for payment
             notes: 'Manual Payment'
         });
 
@@ -72,11 +85,72 @@ export default function SalaryPage() {
 
     return (
         <div>
-            <div className="page-header">
+            <div className="page-header flex-col md:flex-row gap-4 items-start md:items-end">
                 <div>
                     <h1 className="page-title">Salary & Payments</h1>
-                    <p className="page-subtitle">Track earnings based on hours</p>
+                    <p className="page-subtitle">Track earnings & daily payments</p>
                 </div>
+
+                <div className="flex items-center gap-4 bg-white p-2 rounded-lg border border-[var(--color-border)] shadow-sm">
+                    <button onClick={() => handleDateChange(-1)} className="p-2 hover:bg-gray-100 rounded-full">
+                        <ChevronLeft size={20} />
+                    </button>
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="border-none font-medium focus:outline-none bg-transparent"
+                    />
+                    <button onClick={() => handleDateChange(1)} className="p-2 hover:bg-gray-100 rounded-full">
+                        <ChevronRight size={20} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Daily Payment Summary */}
+            <div className="card mb-8 bg-blue-50 border-blue-100">
+                <div
+                    className="flex justify-between items-center cursor-pointer select-none"
+                    onClick={() => setIsPaymentLogOpen(!isPaymentLogOpen)}
+                >
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-bold text-blue-900">Payments on {selectedDate}</h2>
+                        {isPaymentLogOpen ? <ChevronUp size={20} className="text-blue-700" /> : <ChevronDown size={20} className="text-blue-700" />}
+                    </div>
+                    <span className="text-2xl font-bold text-blue-700">${totalPaidToday.toLocaleString()}</span>
+                </div>
+
+                {isPaymentLogOpen && (
+                    <div className="mt-4">
+                        {todaysPayments.length > 0 ? (
+                            <div className="bg-white rounded-lg border border-blue-100 overflow-hidden">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-blue-50/50 text-blue-900">
+                                        <tr>
+                                            <th className="p-3">Employee</th>
+                                            <th className="p-3">Notes</th>
+                                            <th className="p-3 text-right">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {todaysPayments.map(p => {
+                                            const emp = employees.find(e => e.id === p.employeeId);
+                                            return (
+                                                <tr key={p.id} className="border-t border-blue-50">
+                                                    <td className="p-3 font-medium">{emp?.name || 'Unknown'}</td>
+                                                    <td className="p-3 text-gray-500">{p.notes}</td>
+                                                    <td className="p-3 text-right font-mono font-bold">${p.amount}</td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-blue-400 italic">No payments recorded for this date.</p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {employees.length === 0 ? (

@@ -78,7 +78,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
 
         // 2. Explicit check on mount (fixes timeout issues if listener is slow)
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (error) {
+                console.warn("Session check failed, clearing auth:", error.message);
+                supabase.auth.signOut();
+                setIsLoading(false);
+                return;
+            }
             if (session) handleAuthChange(session);
             else setIsLoading(false); // Stop loading if no session found
         });
