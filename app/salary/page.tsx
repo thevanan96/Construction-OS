@@ -2,16 +2,19 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { BadgeDollarSign, FileText, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { BadgeDollarSign, FileText, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react';
 import { getSriLankaDate } from '@/lib/dateUtils';
 
 export default function SalaryPage() {
-    const { employees, attendance, payments, addPayment, sites } = useApp();
+    const { employees, attendance, payments, addPayment, updatePayment, deletePayment, sites } = useApp();
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [viewDetailsEmployee, setViewDetailsEmployee] = useState<string | null>(null);
     const [payAmount, setPayAmount] = useState('');
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [isPaymentLogOpen, setIsPaymentLogOpen] = useState(false);
+
+    // Edit Payment State
+    const [editingPayment, setEditingPayment] = useState<{ id: string, amount: string, date: string, notes: string } | null>(null);
 
     const handleDateChange = (days: number) => {
         const date = new Date(selectedDate);
@@ -106,6 +109,7 @@ export default function SalaryPage() {
                     </button>
                 </div>
             </div>
+
 
             {/* Daily Payment Summary */}
             <div className="card mb-8 bg-blue-50 border-blue-100">
@@ -216,140 +220,244 @@ export default function SalaryPage() {
                         );
                     })}
                 </div>
-            )}
+            )
+            }
 
             {/* Details Modal */}
-            {detailsEmployee && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="card w-full max-w-2xl shadow-xl bg-white max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-6">
+            {
+                detailsEmployee && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                        <div className="card w-full max-w-2xl shadow-xl bg-white max-h-[90vh] overflow-y-auto">
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h2 className="text-xl font-bold">{detailsEmployee.name}</h2>
+                                    <p className="text-sm text-[var(--color-text-muted)]">Full Attendance Sheet</p>
+                                </div>
+                                <button onClick={() => setViewDetailsEmployee(null)} className="p-2 hover:bg-gray-100 rounded-full">
+                                    <X size={24} />
+                                </button>
+                            </div>
+
+                            <div className="mb-8">
+                                <h3 className="label mb-3">Attendance History</h3>
+                                <div className="table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Site</th>
+                                                <th>Time / Status</th>
+                                                <th className="text-right">Earned</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {attendance
+                                                .filter(a => a.employeeId === detailsEmployee.id)
+                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                                .map(record => {
+                                                    let earned = 0;
+                                                    let displayTime = '';
+
+                                                    if (record.workingHours !== undefined) {
+                                                        const hourlyRate = detailsEmployee.dailyRate / 10;
+                                                        earned = hourlyRate * record.workingHours;
+                                                        displayTime = `${record.workingHours} Hrs`;
+                                                        if (record.startTime && record.endTime) {
+                                                            displayTime += ` (${record.startTime} - ${record.endTime})`;
+                                                        }
+                                                    } else {
+                                                        if (record.status === 'present') {
+                                                            earned = detailsEmployee.dailyRate;
+                                                            displayTime = 'Full Day (10h)';
+                                                        }
+                                                        if (record.status === 'half-day') {
+                                                            earned = detailsEmployee.dailyRate / 2;
+                                                            displayTime = 'Half Day (5h)';
+                                                        }
+                                                    }
+
+                                                    return (
+                                                        <tr key={record.id}>
+                                                            <td className="font-mono text-sm">{record.date.split('T')[0]}</td>
+                                                            <td className="text-sm">
+                                                                {record.site ? (sites.find(s => s.id === record.site)?.name || 'Unknown Site') : '-'}
+                                                            </td>
+                                                            <td className="text-sm font-medium">
+                                                                {displayTime || record.status}
+                                                            </td>
+                                                            <td className="text-right font-mono">${earned.toFixed(0)}</td>
+                                                        </tr>
+                                                    )
+                                                })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
                             <div>
-                                <h2 className="text-xl font-bold">{detailsEmployee.name}</h2>
-                                <p className="text-sm text-[var(--color-text-muted)]">Full Attendance Sheet</p>
-                            </div>
-                            <button onClick={() => setViewDetailsEmployee(null)} className="p-2 hover:bg-gray-100 rounded-full">
-                                <X size={24} />
-                            </button>
-                        </div>
-
-                        <div className="mb-8">
-                            <h3 className="label mb-3">Attendance History</h3>
-                            <div className="table-container">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Site</th>
-                                            <th>Time / Status</th>
-                                            <th className="text-right">Earned</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {attendance
-                                            .filter(a => a.employeeId === detailsEmployee.id)
-                                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                            .map(record => {
-                                                let earned = 0;
-                                                let displayTime = '';
-
-                                                if (record.workingHours !== undefined) {
-                                                    const hourlyRate = detailsEmployee.dailyRate / 10;
-                                                    earned = hourlyRate * record.workingHours;
-                                                    displayTime = `${record.workingHours} Hrs`;
-                                                    if (record.startTime && record.endTime) {
-                                                        displayTime += ` (${record.startTime} - ${record.endTime})`;
-                                                    }
-                                                } else {
-                                                    if (record.status === 'present') {
-                                                        earned = detailsEmployee.dailyRate;
-                                                        displayTime = 'Full Day (10h)';
-                                                    }
-                                                    if (record.status === 'half-day') {
-                                                        earned = detailsEmployee.dailyRate / 2;
-                                                        displayTime = 'Half Day (5h)';
-                                                    }
-                                                }
-
-                                                return (
-                                                    <tr key={record.id}>
-                                                        <td className="font-mono text-sm">{record.date.split('T')[0]}</td>
-                                                        <td className="text-sm">
-                                                            {record.site ? (sites.find(s => s.id === record.site)?.name || 'Unknown Site') : '-'}
+                                <h3 className="label mb-3">Payment History</h3>
+                                <div className="table-container">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Notes</th>
+                                                <th className="text-right">Amount</th>
+                                                <th className="text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {payments
+                                                .filter(p => p.employeeId === detailsEmployee.id)
+                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                                .map(payment => (
+                                                    <tr key={payment.id} className="group hover:bg-gray-50">
+                                                        <td className="font-mono text-sm">{payment.date.split('T')[0]}</td>
+                                                        <td className="text-sm text-[var(--color-text-muted)]">{payment.notes || '-'}</td>
+                                                        <td className="text-right font-mono font-bold text-[var(--color-success)]">${payment.amount}</td>
+                                                        <td className="text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => setEditingPayment({
+                                                                    id: payment.id,
+                                                                    amount: payment.amount.toString(),
+                                                                    date: payment.date.split('T')[0],
+                                                                    notes: payment.notes || ''
+                                                                })}
+                                                                className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                                                title="Edit"
+                                                            >
+                                                                <Pencil size={14} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (confirm('Are you sure you want to delete this payment?')) {
+                                                                        deletePayment(payment.id);
+                                                                    }
+                                                                }}
+                                                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
                                                         </td>
-                                                        <td className="text-sm font-medium">
-                                                            {displayTime || record.status}
-                                                        </td>
-                                                        <td className="text-right font-mono">${earned.toFixed(0)}</td>
                                                     </tr>
-                                                )
-                                            })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="label mb-3">Payment History</h3>
-                            <div className="table-container">
-                                <table>
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Notes</th>
-                                            <th className="text-right">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {payments
-                                            .filter(p => p.employeeId === detailsEmployee.id)
-                                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                            .map(payment => (
-                                                <tr key={payment.id}>
-                                                    <td className="font-mono text-sm">{payment.date.split('T')[0]}</td>
-                                                    <td className="text-sm text-[var(--color-text-muted)]">{payment.notes || '-'}</td>
-                                                    <td className="text-right font-mono font-bold text-[var(--color-success)]">${payment.amount}</td>
-                                                </tr>
-                                            ))}
-                                    </tbody>
-                                </table>
+                                                ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Payment Modal */}
-            {selectedEmployee && activeEmployee && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="card w-full max-w-sm shadow-xl bg-white">
-                        <h3 className="text-lg font-bold mb-4">Pay {activeEmployee.name}</h3>
-                        {/* Same Payment Modal Content */}
-                        <div className="bg-gray-50 p-3 rounded mb-4 text-sm">
-                            <div className="flex justify-between mb-1">
-                                <span className="text-gray-500">Current Dues:</span>
-                                <span className="font-bold">${getFinancials(activeEmployee.id, activeEmployee.dailyRate).balance.toLocaleString()}</span>
+            {
+                selectedEmployee && activeEmployee && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                        <div className="card w-full max-w-sm shadow-xl bg-white">
+                            <h3 className="text-lg font-bold mb-4">Pay {activeEmployee.name}</h3>
+                            {/* Same Payment Modal Content */}
+                            <div className="bg-gray-50 p-3 rounded mb-4 text-sm">
+                                <div className="flex justify-between mb-1">
+                                    <span className="text-gray-500">Current Dues:</span>
+                                    <span className="font-bold">${getFinancials(activeEmployee.id, activeEmployee.dailyRate).balance.toLocaleString()}</span>
+                                </div>
                             </div>
+
+                            <form onSubmit={handlePay}>
+                                <div className="mb-4">
+                                    <label className="label">Amount to Pay ($)</label>
+                                    <input
+                                        type="number"
+                                        className="input text-lg"
+                                        autoFocus
+                                        placeholder="0.00"
+                                        value={payAmount}
+                                        onChange={e => setPayAmount(e.target.value)}
+                                        min="1"
+                                        required
+                                    />
+                                </div>
+
+                                <div className="flex justify-end gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedEmployee(null)}
+                                        className="btn btn-outline"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="btn btn-primary"
+                                    >
+                                        Confirm Payment
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* Edit Payment Modal */}
+            {editingPayment && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+                    <div className="card w-full max-w-sm shadow-xl bg-white">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold">Edit Payment</h3>
+                            <button onClick={() => setEditingPayment(null)} className="p-1 hover:bg-gray-100 rounded-full">
+                                <X size={20} />
+                            </button>
                         </div>
 
-                        <form onSubmit={handlePay}>
-                            <div className="mb-4">
-                                <label className="label">Amount to Pay ($)</label>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            if (editingPayment) {
+                                updatePayment(editingPayment.id, {
+                                    amount: Number(editingPayment.amount),
+                                    date: editingPayment.date,
+                                    notes: editingPayment.notes
+                                });
+                                setEditingPayment(null);
+                            }
+                        }}>
+                            <div className="mb-3">
+                                <label className="label">Date</label>
+                                <input
+                                    type="date"
+                                    className="input w-full"
+                                    value={editingPayment.date}
+                                    onChange={e => setEditingPayment({ ...editingPayment, date: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label className="label">Amount ($)</label>
                                 <input
                                     type="number"
-                                    className="input text-lg"
-                                    autoFocus
-                                    placeholder="0.00"
-                                    value={payAmount}
-                                    onChange={e => setPayAmount(e.target.value)}
-                                    min="1"
+                                    className="input w-full"
+                                    value={editingPayment.amount}
+                                    onChange={e => setEditingPayment({ ...editingPayment, amount: e.target.value })}
                                     required
+                                    min="0"
+                                />
+                            </div>
+                            <div className="mb-4">
+                                <label className="label">Notes</label>
+                                <input
+                                    type="text"
+                                    className="input w-full"
+                                    value={editingPayment.notes}
+                                    onChange={e => setEditingPayment({ ...editingPayment, notes: e.target.value })}
                                 />
                             </div>
 
                             <div className="flex justify-end gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => setSelectedEmployee(null)}
+                                    onClick={() => setEditingPayment(null)}
                                     className="btn btn-outline"
                                 >
                                     Cancel
@@ -358,13 +466,14 @@ export default function SalaryPage() {
                                     type="submit"
                                     className="btn btn-primary"
                                 >
-                                    Confirm Payment
+                                    Save Changes
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
-        </div>
+
+        </div >
     );
 }

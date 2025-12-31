@@ -17,6 +17,8 @@ interface AppContextType {
     deleteEmployee: (id: string) => Promise<void>;
     markAttendance: (record: Omit<Attendance, 'id'>) => Promise<void>;
     addPayment: (payment: Omit<Payment, 'id'>) => Promise<void>;
+    updatePayment: (id: string, data: Partial<Payment>) => Promise<void>;
+    deletePayment: (id: string) => Promise<void>;
     addSite: (site: Omit<Site, 'id'>) => Promise<void>;
     updateSite: (id: string, data: Partial<Site>) => Promise<void>;
     removeSite: (id: string) => Promise<void>;
@@ -331,6 +333,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         else fetchData(); // Revert
     };
 
+    const updatePayment = async (id: string, data: Partial<Payment>) => {
+        if (!user) return;
+
+        // Optimistic Update
+        setPayments(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+
+        const updates: any = {};
+        if (data.amount !== undefined) updates.amount = data.amount;
+        if (data.date) updates.date = data.date;
+        if (data.notes !== undefined) updates.notes = data.notes;
+
+        const { error } = await supabase.from('payments').update(updates).eq('id', id);
+
+        if (error) {
+            console.error('Update Payment Error:', error);
+            alert('Failed to update payment: ' + error.message);
+            fetchData(); // Revert
+        }
+    };
+
+    const deletePayment = async (id: string) => {
+        if (!user) return;
+        // Optimistic Update
+        setPayments(prev => prev.filter(p => p.id !== id));
+
+        const { error } = await supabase.from('payments').delete().eq('id', id);
+
+        if (error) {
+            console.error('Delete Payment Error:', error);
+            alert('Failed to delete payment: ' + error.message);
+            fetchData(); // Revert
+        }
+    };
+
     const addSite = async (data: Omit<Site, 'id'>) => {
         if (!user) return;
 
@@ -399,7 +435,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return (
         <AppContext.Provider value={{
             employees, attendance, payments, sites, user, isLoading,
-            addEmployee, updateEmployee, deleteEmployee, markAttendance, addPayment, addSite, updateSite, removeSite,
+            addEmployee, updateEmployee, deleteEmployee, markAttendance, addPayment, updatePayment, deletePayment, addSite, updateSite, removeSite,
             logout
         }}>
             {children}

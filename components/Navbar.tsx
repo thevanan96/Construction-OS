@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut, FileText } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
     { name: 'Employees', href: '/employees', icon: Users },
     { name: 'Sites', href: '/sites', icon: Building },
     { name: 'Attendance', href: '/attendance', icon: CalendarCheck },
+    { name: 'Reports', href: '/reports', icon: FileText },
     { name: 'Salary', href: '/salary', icon: Banknote },
 ];
 
