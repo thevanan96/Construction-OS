@@ -190,34 +190,41 @@ export default function EmployeesPage() {
                                     <button
                                         type="button"
                                         onClick={handleAddRole}
-                                        className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                        className="btn btn-sm btn-primary flex items-center gap-1"
+                                        style={{ backgroundColor: '#3B82F6', color: 'white', padding: '4px 8px', fontSize: '12px' }}
                                     >
-                                        <Plus size={16} /> Add Role
+                                        <Plus size={14} /> Add Role
                                     </button>
                                 </div>
                                 {formData.additionalRoles.map((role, index) => (
-                                    <div key={index} className="grid grid-cols-[1fr_1fr_auto] gap-2 mb-2 items-center">
-                                        <input
-                                            type="text"
-                                            placeholder="Role (e.g. Driver)"
-                                            className="input text-sm"
-                                            value={role.role}
-                                            onChange={e => handleRoleChange(index, 'role', e.target.value)}
-                                            required
-                                        />
-                                        <input
-                                            type="number"
-                                            placeholder="Rate"
-                                            className="input text-sm"
-                                            value={role.dailyRate}
-                                            onChange={e => handleRoleChange(index, 'dailyRate', Number(e.target.value))}
-                                            required
-                                            min="0"
-                                        />
+                                    <div key={index} className="flex gap-2 mb-2 items-center">
+                                        <div className="flex-1">
+                                            <input
+                                                type="text"
+                                                placeholder="Role (e.g. Driver)"
+                                                className="input text-sm w-full"
+                                                value={role.role}
+                                                onChange={e => handleRoleChange(index, 'role', e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="w-24">
+                                            <input
+                                                type="number"
+                                                placeholder="Rate"
+                                                className="input text-sm w-full"
+                                                value={role.dailyRate}
+                                                onChange={e => handleRoleChange(index, 'dailyRate', Number(e.target.value))}
+                                                required
+                                                min="0"
+                                            />
+                                        </div>
                                         <button
                                             type="button"
                                             onClick={() => handleRemoveRole(index)}
-                                            className="text-red-500 hover:text-red-700 p-2"
+                                            className="btn btn-sm"
+                                            style={{ backgroundColor: '#FECACA', color: '#DC2626', padding: '8px', minWidth: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none' }}
+                                            title="Remove Role"
                                         >
                                             <Trash2 size={16} />
                                         </button>
