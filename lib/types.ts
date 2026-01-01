@@ -3,6 +3,7 @@ export interface Employee {
     name: string;
     role: string;
     dailyRate: number;
+    additionalRoles?: { role: string; dailyRate: number }[];
     joinedDate: string;
     active: boolean;
     phone?: string;
@@ -16,6 +17,7 @@ export interface Attendance {
     employeeId: string;
     date: string; // ISO YYYY-MM-DD
     status: AttendanceStatus;
+    role?: string; // The role performed on this specific day
     site?: string;
     startTime?: string;
     endTime?: string;

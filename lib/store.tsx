@@ -128,6 +128,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 name: e.name,
                 role: e.role,
                 dailyRate: e.daily_rate,
+                additionalRoles: e.additional_roles || [],
                 joinedDate: e.joined_date,
                 active: e.status === 'active',
                 phone: e.phone,
@@ -150,6 +151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 employeeId: a.employee_id,
                 date: a.date,
                 status: a.status,
+                role: a.role,
                 site: a.site_id,
                 startTime: a.start_time,
                 endTime: a.end_time,
@@ -195,6 +197,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             name: data.name,
             role: data.role,
             daily_rate: data.dailyRate,
+            additional_roles: data.additionalRoles || [],
             joined_date: data.joinedDate || new Date().toISOString(),
             status: data.active ? 'active' : 'inactive',
             phone: data.phone,
@@ -222,6 +225,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.name) updates.name = data.name;
         if (data.role) updates.role = data.role;
         if (data.dailyRate) updates.daily_rate = data.dailyRate;
+        if (data.additionalRoles) updates.additional_roles = data.additionalRoles;
         if (data.joinedDate) updates.joined_date = data.joinedDate;
         if (data.active !== undefined) updates.status = data.active ? 'active' : 'inactive';
         if (data.phone !== undefined) updates.phone = data.phone;
@@ -264,7 +268,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
 
-    const markAttendance = async (data: Omit<Attendance, 'id'>) => {
+    const markAttendance = async (record: Omit<Attendance, 'id'>) => {
         if (!user) {
             alert('Error: You appear to be logged out.');
             return;
@@ -272,29 +276,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         // Optimistic Update: Update UI immediately
         setAttendance(prev => {
-            const others = prev.filter(a => !(a.employeeId === data.employeeId && a.date === data.date));
+            const others = prev.filter(a => !(a.employeeId === record.employeeId && a.date === record.date));
             return [...others, {
                 id: 'temp-' + Math.random().toString(36).substr(2, 9), // Unique Temporary ID
-                employeeId: data.employeeId,
-                date: data.date,
-                status: data.status,
-                site: data.site,
-                startTime: data.startTime,
-                endTime: data.endTime,
-                workingHours: data.workingHours
+                employeeId: record.employeeId,
+                date: record.date,
+                status: record.status,
+                role: record.role,
+                site: record.site,
+                startTime: record.startTime,
+                endTime: record.endTime,
+                workingHours: record.workingHours
             }];
         });
 
         // Upsert based on employee_id and date
         const { error } = await supabase.from('attendance').upsert({
             user_id: user.id,
-            employee_id: data.employeeId,
-            date: data.date,
-            status: data.status,
-            site_id: data.site, // Ensure this is a UUID!
-            start_time: data.startTime,
-            end_time: data.endTime,
-            working_hours: data.workingHours
+            employee_id: record.employeeId,
+            date: record.date,
+            status: record.status,
+            role: record.role,
+            site_id: record.site || null,
+            start_time: record.startTime || null,
+            end_time: record.endTime,
+            working_hours: record.workingHours
         }, { onConflict: 'employee_id,date' });
 
         if (error) {

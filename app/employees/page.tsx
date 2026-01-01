@@ -16,6 +16,7 @@ export default function EmployeesPage() {
         name: '',
         role: '',
         dailyRate: '',
+        additionalRoles: [] as { role: string; dailyRate: number }[],
         joinedDate: new Date().toISOString().split('T')[0],
         phone: '',
         nic: ''
@@ -26,6 +27,7 @@ export default function EmployeesPage() {
             name: '',
             role: '',
             dailyRate: '',
+            additionalRoles: [],
             joinedDate: new Date().toISOString().split('T')[0],
             phone: '',
             nic: ''
@@ -44,6 +46,7 @@ export default function EmployeesPage() {
             name: emp.name,
             role: emp.role,
             dailyRate: emp.dailyRate.toString(),
+            additionalRoles: emp.additionalRoles || [],
             joinedDate: emp.joinedDate.split('T')[0],
             phone: emp.phone || '',
             nic: emp.nic || ''
@@ -57,6 +60,26 @@ export default function EmployeesPage() {
         }
     };
 
+    const handleAddRole = () => {
+        setFormData(prev => ({
+            ...prev,
+            additionalRoles: [...prev.additionalRoles, { role: '', dailyRate: 0 }]
+        }));
+    };
+
+    const handleRemoveRole = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            additionalRoles: prev.additionalRoles.filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleRoleChange = (index: number, field: 'role' | 'dailyRate', value: string | number) => {
+        const newRoles = [...formData.additionalRoles];
+        newRoles[index] = { ...newRoles[index], [field]: value };
+        setFormData(prev => ({ ...prev, additionalRoles: newRoles }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -66,6 +89,7 @@ export default function EmployeesPage() {
                 name: formData.name,
                 role: formData.role,
                 dailyRate: Number(formData.dailyRate),
+                additionalRoles: formData.additionalRoles,
                 joinedDate: formData.joinedDate,
                 phone: formData.phone,
                 nic: formData.nic
@@ -76,6 +100,7 @@ export default function EmployeesPage() {
                 name: formData.name,
                 role: formData.role,
                 dailyRate: Number(formData.dailyRate),
+                additionalRoles: formData.additionalRoles,
                 joinedDate: formData.joinedDate,
                 active: true,
                 phone: formData.phone,
@@ -156,6 +181,48 @@ export default function EmployeesPage() {
                                         min="0"
                                     />
                                 </div>
+                            </div>
+
+                            {/* Secondary Roles Section */}
+                            <div className="mb-4 border-t border-gray-100 pt-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <label className="label text-sm font-semibold text-gray-500">Secondary Roles (Optional)</label>
+                                    <button
+                                        type="button"
+                                        onClick={handleAddRole}
+                                        className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                    >
+                                        <Plus size={16} /> Add Role
+                                    </button>
+                                </div>
+                                {formData.additionalRoles.map((role, index) => (
+                                    <div key={index} className="grid grid-cols-[1fr_1fr_auto] gap-2 mb-2 items-center">
+                                        <input
+                                            type="text"
+                                            placeholder="Role (e.g. Driver)"
+                                            className="input text-sm"
+                                            value={role.role}
+                                            onChange={e => handleRoleChange(index, 'role', e.target.value)}
+                                            required
+                                        />
+                                        <input
+                                            type="number"
+                                            placeholder="Rate"
+                                            className="input text-sm"
+                                            value={role.dailyRate}
+                                            onChange={e => handleRoleChange(index, 'dailyRate', Number(e.target.value))}
+                                            required
+                                            min="0"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveRole(index)}
+                                            className="text-red-500 hover:text-red-700 p-2"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
 
                             <div className="mb-4">
@@ -249,9 +316,23 @@ export default function EmployeesPage() {
                                     <tr key={emp.id}>
                                         <td className="font-medium text-[var(--color-text-main)]">
                                             {emp.name}
-                                            <div className="text-xs text-[var(--color-text-muted)] md:hidden">{emp.role}</div>
+                                            <div className="text-xs text-[var(--color-text-muted)] md:hidden">
+                                                {emp.role}
+                                                {emp.additionalRoles && emp.additionalRoles.length > 0 && (
+                                                    <span className="text-xs ml-1 text-blue-600">
+                                                        (+{emp.additionalRoles.length})
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
-                                        <td className="text-[var(--color-text-muted)] hidden md:table-cell">{emp.role}</td>
+                                        <td className="text-[var(--color-text-muted)] hidden md:table-cell">
+                                            {emp.role}
+                                            {emp.additionalRoles && emp.additionalRoles.length > 0 && (
+                                                <div className="text-[10px] text-blue-600">
+                                                    +{emp.additionalRoles.map(r => r.role).join(', ')}
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="text-[var(--color-text-muted)] font-mono text-sm">{emp.phone || '-'}</td>
                                         <td className="text-[var(--color-text-muted)] font-mono text-sm uppercase">{emp.nic || '-'}</td>
                                         <td className="text-[var(--color-text-main)] font-mono">${emp.dailyRate}</td>

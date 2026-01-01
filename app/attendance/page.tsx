@@ -11,6 +11,7 @@ export default function AttendancePage() {
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [searchQuery, setSearchQuery] = useState('');
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
+    const [employeeRoles, setEmployeeRoles] = useState<Record<string, string>>({});
 
     const filteredEmployees = employees.filter(emp =>
         emp.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -32,6 +33,12 @@ export default function AttendancePage() {
         return employeeSites[employeeId] || (sites.length > 0 ? sites[0].id : '');
     };
 
+    const getRole = (employeeId: string, defaultRole: string): string => {
+        const record = getRecord(employeeId);
+        if (record && record.role) return record.role;
+        return employeeRoles[employeeId] || defaultRole;
+    };
+
     const calculateHours = (start: string, end: string): number => {
         if (!start || !end) return 0;
         const startDate = new Date(`1970-01-01T${start}`);
@@ -42,6 +49,8 @@ export default function AttendancePage() {
 
     const setStatus = (employeeId: string, status: AttendanceStatus) => {
         const currentSite = employeeSites[employeeId] || (sites.length > 0 ? sites[0].id : '');
+        const employee = employees.find(e => e.id === employeeId);
+        const currentRole = employeeRoles[employeeId] || employee?.role || '';
 
         let startTime = '';
         let endTime = '';
@@ -66,6 +75,7 @@ export default function AttendancePage() {
             employeeId,
             date: selectedDate,
             status,
+            role: currentRole,
             site: currentSite || undefined,
             startTime,
             endTime,
@@ -76,6 +86,9 @@ export default function AttendancePage() {
     const handleTimeChange = (employeeId: string, field: 'startTime' | 'endTime', value: string) => {
         const record = getRecord(employeeId);
         const currentSite = getSite(employeeId);
+        const employee = employees.find(e => e.id === employeeId);
+        const currentRole = getRole(employeeId, employee?.role || '');
+
         const currentStart = field === 'startTime' ? value : (record?.startTime || '');
         const currentEnd = field === 'endTime' ? value : (record?.endTime || '');
 
@@ -90,6 +103,7 @@ export default function AttendancePage() {
             employeeId,
             date: selectedDate,
             status,
+            role: currentRole,
             site: currentSite || undefined,
             startTime: currentStart,
             endTime: currentEnd,
@@ -107,6 +121,25 @@ export default function AttendancePage() {
                 date: selectedDate,
                 status: record.status,
                 site: siteId || undefined,
+                startTime: record.startTime,
+                endTime: record.endTime,
+                workingHours: record.workingHours
+            });
+        }
+    };
+
+    const handleRoleChange = (employeeId: string, role: string) => {
+        setEmployeeRoles(prev => ({ ...prev, [employeeId]: role }));
+
+        // If record exists, update it immediately
+        const record = getRecord(employeeId);
+        if (record) {
+            markAttendance({
+                employeeId,
+                date: selectedDate,
+                status: record.status,
+                role: role,
+                site: record.site,
                 startTime: record.startTime,
                 endTime: record.endTime,
                 workingHours: record.workingHours
@@ -165,13 +198,16 @@ export default function AttendancePage() {
                         const endTime = record?.endTime || '';
                         const workingHours = record?.workingHours || 0;
 
+                        const currentRole = getRole(emp.id, emp.role);
+                        const currentRate = emp.additionalRoles?.find(r => r.role === currentRole)?.dailyRate ?? emp.dailyRate;
+
                         return (
                             <div key={emp.id} className="card">
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
                                         <h3 className="font-bold text-[var(--color-dark)]">{emp.name}</h3>
                                         <div className="flex items-center gap-2">
-                                            <p className="text-sm text-[var(--color-text-muted)]">{emp.role}</p>
+                                            <p className="text-sm text-[var(--color-text-muted)]">{currentRole}</p>
                                             {workingHours > 0 && (
                                                 <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                                                     {workingHours} Hours
@@ -180,9 +216,26 @@ export default function AttendancePage() {
                                         </div>
                                     </div>
                                     <div className="text-xs font-mono bg-gray-100 px-2 py-1 rounded text-gray-600">
-                                        ${emp.dailyRate}/day
+                                        ${currentRate}/day
                                     </div>
                                 </div>
+
+                                {/* Role Selection (Only if multiple roles exist) */}
+                                {emp.additionalRoles && emp.additionalRoles.length > 0 && (
+                                    <div className="mb-4">
+                                        <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase mb-1 block">Role</label>
+                                        <select
+                                            className="input text-sm p-2 w-full"
+                                            value={currentRole}
+                                            onChange={(e) => handleRoleChange(emp.id, e.target.value)}
+                                        >
+                                            <option value={emp.role}>{emp.role} (Primary - ${emp.dailyRate})</option>
+                                            {emp.additionalRoles.map((r, idx) => (
+                                                <option key={idx} value={r.role}>{r.role} - ${r.dailyRate}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="mb-4">
                                     <label className="text-xs font-bold text-[var(--color-text-muted)] uppercase mb-1 block">Work Site</label>

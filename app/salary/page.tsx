@@ -26,29 +26,35 @@ export default function SalaryPage() {
     const totalPaidToday = todaysPayments.reduce((sum, p) => sum + p.amount, 0);
 
     // Calculation Logic
-    const getFinancials = (employeeId: string, dailyRate: number) => {
+    const getFinancials = (employee: any) => {
         // ... (existing logic)
         // 1. Calculate Earned
-        const empAttendance = attendance.filter(a => a.employeeId === employeeId);
+        const empAttendance = attendance.filter(a => a.employeeId === employee.id);
         let totalEarned = 0;
         let totalHours = 0;
 
         empAttendance.forEach(record => {
             let recordEarned = 0;
+
+            // Determine Daily Rate for this specific record
+            const recordRole = record.role || employee.role;
+            const roleData = employee.additionalRoles?.find((r: any) => r.role === recordRole);
+            const applicableRate = roleData ? roleData.dailyRate : employee.dailyRate;
+
             // Precise Hourly Calculation (if available)
             if (record.workingHours !== undefined && record.workingHours !== null) {
-                const hourlyRate = dailyRate / 10;
+                const hourlyRate = applicableRate / 10;
                 recordEarned = hourlyRate * record.workingHours;
                 totalHours += record.workingHours;
             }
             // Fallback Legacy Calculation
             else {
                 if (record.status === 'present') {
-                    recordEarned = dailyRate;
+                    recordEarned = applicableRate;
                     totalHours += 10;
                 }
                 if (record.status === 'half-day') {
-                    recordEarned = dailyRate / 2;
+                    recordEarned = applicableRate / 2;
                     totalHours += 5;
                 }
             }
@@ -56,7 +62,7 @@ export default function SalaryPage() {
         });
 
         // 2. Calculate Paid
-        const empPayments = payments.filter(p => p.employeeId === employeeId);
+        const empPayments = payments.filter(p => p.employeeId === employee.id);
         const totalPaid = empPayments.reduce((acc, curr) => acc + curr.amount, 0);
 
         return {
@@ -162,8 +168,7 @@ export default function SalaryPage() {
             ) : (
                 <div className="dashboard-grid">
                     {employees.map(emp => {
-                        const { totalEarned, totalPaid, balance, totalHours } = getFinancials(emp.id, emp.dailyRate);
-
+                        const { totalEarned, totalPaid, balance, totalHours } = getFinancials(emp); // Destructure result
                         return (
                             <div key={emp.id} className="card">
                                 <div className="flex justify-between items-start mb-4">
@@ -245,6 +250,7 @@ export default function SalaryPage() {
                                         <thead>
                                             <tr>
                                                 <th>Date</th>
+                                                <th>Role</th>
                                                 <th>Site</th>
                                                 <th>Time / Status</th>
                                                 <th className="text-right">Earned</th>
@@ -258,8 +264,13 @@ export default function SalaryPage() {
                                                     let earned = 0;
                                                     let displayTime = '';
 
+                                                    // Determine rate for this record
+                                                    const recordRole = record.role || detailsEmployee.role;
+                                                    const roleData = detailsEmployee.additionalRoles?.find((r: any) => r.role === recordRole);
+                                                    const applicableRate = roleData ? roleData.dailyRate : detailsEmployee.dailyRate;
+
                                                     if (record.workingHours !== undefined) {
-                                                        const hourlyRate = detailsEmployee.dailyRate / 10;
+                                                        const hourlyRate = applicableRate / 10;
                                                         earned = hourlyRate * record.workingHours;
                                                         displayTime = `${record.workingHours} Hrs`;
                                                         if (record.startTime && record.endTime) {
@@ -267,11 +278,11 @@ export default function SalaryPage() {
                                                         }
                                                     } else {
                                                         if (record.status === 'present') {
-                                                            earned = detailsEmployee.dailyRate;
+                                                            earned = applicableRate;
                                                             displayTime = 'Full Day (10h)';
                                                         }
                                                         if (record.status === 'half-day') {
-                                                            earned = detailsEmployee.dailyRate / 2;
+                                                            earned = applicableRate / 2;
                                                             displayTime = 'Half Day (5h)';
                                                         }
                                                     }
@@ -279,6 +290,9 @@ export default function SalaryPage() {
                                                     return (
                                                         <tr key={record.id}>
                                                             <td className="font-mono text-sm">{record.date.split('T')[0]}</td>
+                                                            <td className="text-sm text-[var(--color-primary)] font-medium">
+                                                                {recordRole}
+                                                            </td>
                                                             <td className="text-sm">
                                                                 {record.site ? (sites.find(s => s.id === record.site)?.name || 'Unknown Site') : '-'}
                                                             </td>
@@ -361,7 +375,7 @@ export default function SalaryPage() {
                             <div className="bg-gray-50 p-3 rounded mb-4 text-sm">
                                 <div className="flex justify-between mb-1">
                                     <span className="text-gray-500">Current Dues:</span>
-                                    <span className="font-bold">${getFinancials(activeEmployee.id, activeEmployee.dailyRate).balance.toLocaleString()}</span>
+                                    <span className="font-bold">${getFinancials(activeEmployee).balance.toLocaleString()}</span>
                                 </div>
                             </div>
 
