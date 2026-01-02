@@ -5,6 +5,20 @@ import { useApp } from '@/lib/store';
 import { BadgeDollarSign, FileText, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react';
 import { getSriLankaDate } from '@/lib/dateUtils';
 
+// Helper to get applicable rate for a specific date from history
+const getRateForDate = (baseRate: number, history: { rate: number; effectiveDate: string }[] | undefined, date: string) => {
+    if (!history || history.length === 0) return baseRate;
+
+    // Sort history by date descending (newest first)
+    const sorted = [...history].sort((a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime());
+
+    // Find first entry where effectiveDate <= date
+    const targetDate = new Date(date);
+    const applicableEntry = sorted.find(h => new Date(h.effectiveDate) <= targetDate);
+
+    return applicableEntry ? applicableEntry.rate : baseRate; // Fallback to base (current) rate if no history matches (should ideally fall back to oldest, but current is safer if history is incomplete)
+};
+
 export default function SalaryPage() {
     const { employees, attendance, payments, addPayment, updatePayment, deletePayment, sites } = useApp();
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -38,8 +52,19 @@ export default function SalaryPage() {
 
             // Determine Daily Rate for this specific record
             const recordRole = record.role || employee.role;
-            const roleData = employee.additionalRoles?.find((r: any) => r.role === recordRole);
-            const applicableRate = roleData ? roleData.dailyRate : employee.dailyRate;
+            let applicableRate = employee.dailyRate;
+            let rateHistory = employee.rateHistory;
+
+            if (recordRole !== employee.role) {
+                const roleData = employee.additionalRoles?.find((r: any) => r.role === recordRole);
+                if (roleData) {
+                    applicableRate = roleData.dailyRate;
+                    rateHistory = roleData.rateHistory;
+                }
+            }
+
+            // Apply historical rate check
+            applicableRate = getRateForDate(applicableRate, rateHistory, record.date);
 
             // Precise Hourly Calculation (if available)
             if (record.workingHours !== undefined && record.workingHours !== null) {
@@ -266,8 +291,19 @@ export default function SalaryPage() {
 
                                                     // Determine rate for this record
                                                     const recordRole = record.role || detailsEmployee.role;
-                                                    const roleData = detailsEmployee.additionalRoles?.find((r: any) => r.role === recordRole);
-                                                    const applicableRate = roleData ? roleData.dailyRate : detailsEmployee.dailyRate;
+                                                    let applicableRate = detailsEmployee.dailyRate;
+                                                    let rateHistory = detailsEmployee.rateHistory;
+
+                                                    if (recordRole !== detailsEmployee.role) {
+                                                        const roleData = detailsEmployee.additionalRoles?.find((r: any) => r.role === recordRole);
+                                                        if (roleData) {
+                                                            applicableRate = roleData.dailyRate;
+                                                            rateHistory = roleData.rateHistory;
+                                                        }
+                                                    }
+
+                                                    // Apply historical rate check
+                                                    applicableRate = getRateForDate(applicableRate, rateHistory, record.date);
 
                                                     if (record.workingHours !== undefined) {
                                                         const hourlyRate = applicableRate / 10;

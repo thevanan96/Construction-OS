@@ -128,7 +128,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 name: e.name,
                 role: e.role,
                 dailyRate: e.daily_rate,
-                additionalRoles: e.additional_roles || [],
+                rateHistory: e.rate_history || [],
+                additionalRoles: (e.additional_roles || []).map((r: any) => ({
+                    ...r,
+                    rateHistory: r.rateHistory || []
+                })),
                 joinedDate: e.joined_date,
                 active: e.status === 'active',
                 phone: e.phone,
@@ -197,6 +201,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             name: data.name,
             role: data.role,
             daily_rate: data.dailyRate,
+            rate_history: data.rateHistory || [],
             additional_roles: data.additionalRoles || [],
             joined_date: data.joinedDate || new Date().toISOString(),
             status: data.active ? 'active' : 'inactive',
@@ -225,6 +230,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.name) updates.name = data.name;
         if (data.role) updates.role = data.role;
         if (data.dailyRate) updates.daily_rate = data.dailyRate;
+        if (data.rateHistory) updates.rate_history = data.rateHistory;
         if (data.additionalRoles) updates.additional_roles = data.additionalRoles;
         if (data.joinedDate) updates.joined_date = data.joinedDate;
         if (data.active !== undefined) updates.status = data.active ? 'active' : 'inactive';

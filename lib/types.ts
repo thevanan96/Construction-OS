@@ -3,7 +3,12 @@ export interface Employee {
     name: string;
     role: string;
     dailyRate: number;
-    additionalRoles?: { role: string; dailyRate: number }[];
+    rateHistory?: { rate: number; effectiveDate: string }[];
+    additionalRoles?: {
+        role: string;
+        dailyRate: number;
+        rateHistory?: { rate: number; effectiveDate: string }[];
+    }[];
     joinedDate: string;
     active: boolean;
     phone?: string;

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Plus, Search, User, Edit, Trash2, X } from 'lucide-react';
+import { Plus, Search, User, Edit, Trash2, X, TrendingUp } from 'lucide-react';
 import { Employee } from '@/lib/types';
 
 export default function EmployeesPage() {
@@ -11,12 +11,23 @@ export default function EmployeesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
 
+    // Increment Modal State
+    const [showIncrementModal, setShowIncrementModal] = useState(false);
+    const [incrementData, setIncrementData] = useState({
+        employeeId: '', // Added to track which employee is being incremented
+        roleName: '', // 'primary' or specific role name
+        currentRate: 0,
+        newRate: 0,
+        effectiveDate: new Date().toISOString().split('T')[0]
+    });
+
     // Form State
     const [formData, setFormData] = useState({
         name: '',
         role: '',
         dailyRate: '',
-        additionalRoles: [] as { role: string; dailyRate: number }[],
+        rateHistory: [] as { rate: number; effectiveDate: string }[], // Added rateHistory
+        additionalRoles: [] as { role: string; dailyRate: number; rateHistory?: { rate: number; effectiveDate: string }[] }[], // Added rateHistory to additional roles
         joinedDate: new Date().toISOString().split('T')[0],
         phone: '',
         nic: ''
@@ -27,6 +38,7 @@ export default function EmployeesPage() {
             name: '',
             role: '',
             dailyRate: '',
+            rateHistory: [], // Reset rateHistory
             additionalRoles: [],
             joinedDate: new Date().toISOString().split('T')[0],
             phone: '',
@@ -46,6 +58,7 @@ export default function EmployeesPage() {
             name: emp.name,
             role: emp.role,
             dailyRate: emp.dailyRate.toString(),
+            rateHistory: emp.rateHistory || [], // Load rateHistory
             additionalRoles: emp.additionalRoles || [],
             joinedDate: emp.joinedDate.split('T')[0],
             phone: emp.phone || '',
@@ -63,7 +76,7 @@ export default function EmployeesPage() {
     const handleAddRole = () => {
         setFormData(prev => ({
             ...prev,
-            additionalRoles: [...prev.additionalRoles, { role: '', dailyRate: 0 }]
+            additionalRoles: [...prev.additionalRoles, { role: '', dailyRate: 0, rateHistory: [] }]
         }));
     };
 
@@ -83,33 +96,105 @@ export default function EmployeesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        const employeeData = {
+            name: formData.name,
+            role: formData.role,
+            dailyRate: Number(formData.dailyRate),
+            rateHistory: formData.rateHistory, // Include rateHistory
+            additionalRoles: formData.additionalRoles,
+            joinedDate: formData.joinedDate,
+            phone: formData.phone,
+            nic: formData.nic
+        };
+
         if (editingId) {
             // Update
-            await updateEmployee(editingId, {
-                name: formData.name,
-                role: formData.role,
-                dailyRate: Number(formData.dailyRate),
-                additionalRoles: formData.additionalRoles,
-                joinedDate: formData.joinedDate,
-                phone: formData.phone,
-                nic: formData.nic
-            });
+            await updateEmployee(editingId, employeeData);
         } else {
             // Add
             await addEmployee({
-                name: formData.name,
-                role: formData.role,
-                dailyRate: Number(formData.dailyRate),
-                additionalRoles: formData.additionalRoles,
-                joinedDate: formData.joinedDate,
+                ...employeeData,
                 active: true,
-                phone: formData.phone,
-                nic: formData.nic
             });
         }
 
         setIsModalOpen(false);
         resetForm();
+    };
+
+    const openIncrementModal = (employeeId: string, roleName: string, currentRate: number) => {
+        setIncrementData({
+            employeeId,
+            roleName,
+            currentRate,
+            newRate: currentRate,
+            effectiveDate: new Date().toISOString().split('T')[0]
+        });
+        setShowIncrementModal(true);
+    };
+
+    const handleSaveIncrement = async () => {
+        const { employeeId, roleName, newRate, effectiveDate } = incrementData;
+        const newRateNum = Number(newRate);
+
+        // Find the employee to update
+        const employeeToUpdate = employees.find(emp => emp.id === employeeId);
+        if (!employeeToUpdate) {
+            console.error("Employee not found for increment.");
+            setShowIncrementModal(false);
+            return;
+        }
+
+        const newEntry = { rate: newRateNum, effectiveDate };
+        let updatedEmployee = { ...employeeToUpdate };
+
+        if (roleName === 'primary') {
+            let currentHistory = [...(updatedEmployee.rateHistory || [])];
+
+            // Backfill current rate if history is empty
+            if (currentHistory.length === 0) {
+                currentHistory.push({
+                    rate: updatedEmployee.dailyRate,
+                    effectiveDate: updatedEmployee.joinedDate // Assume initial rate started on join date
+                });
+            }
+
+            const updatedHistory = [...currentHistory, newEntry];
+            const isEffectiveNow = new Date(effectiveDate) <= new Date();
+            updatedEmployee = {
+                ...updatedEmployee,
+                rateHistory: updatedHistory,
+                dailyRate: isEffectiveNow ? newRateNum : updatedEmployee.dailyRate
+            };
+        } else {
+            // Update Secondary Role
+            const updatedRoles = (updatedEmployee.additionalRoles || []).map(r => {
+                if (r.role === roleName) {
+                    let currentHistory = [...(r.rateHistory || [])];
+
+                    // Backfill current rate for role if history is empty
+                    if (currentHistory.length === 0) {
+                        currentHistory.push({
+                            rate: r.dailyRate,
+                            effectiveDate: updatedEmployee.joinedDate // Use employee join date as fallback for role start
+                        });
+                    }
+
+                    const updatedHistory = [...currentHistory, newEntry];
+                    const isEffectiveNow = new Date(effectiveDate) <= new Date();
+                    return {
+                        ...r,
+                        rateHistory: updatedHistory,
+                        dailyRate: isEffectiveNow ? newRateNum : r.dailyRate
+                    };
+                }
+                return r;
+            });
+            updatedEmployee = { ...updatedEmployee, additionalRoles: updatedRoles };
+        }
+
+        await updateEmployee(employeeId, updatedEmployee);
+        setShowIncrementModal(false);
     };
 
     const filteredEmployees = employees.filter(emp =>
@@ -171,15 +256,27 @@ export default function EmployeesPage() {
                                 </div>
                                 <div className="mb-4">
                                     <label className="label">Daily Rate ($)</label>
-                                    <input
-                                        required
-                                        type="number"
-                                        className="input"
-                                        value={formData.dailyRate}
-                                        onChange={e => setFormData({ ...formData, dailyRate: e.target.value })}
-                                        placeholder="50"
-                                        min="0"
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            required
+                                            type="number"
+                                            className="input w-full"
+                                            value={formData.dailyRate}
+                                            onChange={e => setFormData({ ...formData, dailyRate: e.target.value })}
+                                            placeholder="50"
+                                            min="0"
+                                        />
+                                        {editingId && (
+                                            <button
+                                                type="button"
+                                                onClick={() => openIncrementModal(editingId, 'primary', Number(formData.dailyRate))}
+                                                className="btn btn-sm btn-outline text-blue-600 border-blue-200 hover:bg-blue-50 px-2"
+                                                title="Add Increment"
+                                            >
+                                                <TrendingUp size={16} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -208,16 +305,29 @@ export default function EmployeesPage() {
                                                 required
                                             />
                                         </div>
-                                        <div className="w-24">
-                                            <input
-                                                type="number"
-                                                placeholder="Rate"
-                                                className="input text-sm w-full"
-                                                value={role.dailyRate}
-                                                onChange={e => handleRoleChange(index, 'dailyRate', Number(e.target.value))}
-                                                required
-                                                min="0"
-                                            />
+                                        <div className="w-32">
+                                            <label className="text-xs text-gray-500 mb-1 block">Daily Rate</label>
+                                            <div className="flex gap-1">
+                                                <input
+                                                    type="number"
+                                                    placeholder="Rate"
+                                                    className="input text-sm w-full bg-white"
+                                                    value={role.dailyRate}
+                                                    onChange={e => handleRoleChange(index, 'dailyRate', Number(e.target.value))}
+                                                    required
+                                                    min="0"
+                                                />
+                                                {editingId && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openIncrementModal(editingId, role.role, role.dailyRate)}
+                                                        className="btn btn-sm text-blue-600 hover:bg-blue-50 px-1 h-9 rounded border border-gray-200 bg-white"
+                                                        title="Add Increment"
+                                                    >
+                                                        <TrendingUp size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                         <button
                                             type="button"
@@ -282,6 +392,57 @@ export default function EmployeesPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Increment Modal */}
+            {showIncrementModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
+                    <div className="card w-full max-w-sm shadow-xl bg-white p-6">
+                        <h3 className="text-lg font-bold mb-4">Add Salary Increment</h3>
+                        <p className="text-sm text-gray-500 mb-4">
+                            Adding increment for <span className="font-semibold text-gray-700">{incrementData.roleName === 'primary' ? 'Primary Role' : incrementData.roleName}</span>
+                        </p>
+
+                        <div className="mb-4">
+                            <label className="label">New Daily Rate ($)</label>
+                            <input
+                                type="number"
+                                className="input text-lg font-bold text-blue-600"
+                                value={incrementData.newRate}
+                                onChange={e => setIncrementData({ ...incrementData, newRate: Number(e.target.value) })}
+                                autoFocus
+                            />
+                            <p className="text-xs text-gray-400 mt-1">Current Rate: ${incrementData.currentRate}</p>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="label">Effective From</label>
+                            <input
+                                type="date"
+                                className="input"
+                                value={incrementData.effectiveDate}
+                                onChange={e => setIncrementData({ ...incrementData, effectiveDate: e.target.value })}
+                            />
+                            <p className="text-xs text-gray-400 mt-1">Changes will apply to attendance marked on or after this date.</p>
+                        </div>
+
+                        <div className="flex justify-end gap-2">
+                            <button
+                                onClick={() => setShowIncrementModal(false)}
+                                className="btn btn-outline"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveIncrement}
+                                className="btn btn-primary"
+                                disabled={incrementData.newRate <= 0}
+                            >
+                                Save Increment
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
