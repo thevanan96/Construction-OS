@@ -232,117 +232,114 @@ export default function AttendancePage() {
                         const effectiveRate = getRateForDate(baseRate, rateHistory, selectedDate);
 
                         return (
-                            <div key={emp.id} className="card p-4 hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-lg text-[var(--color-dark)]">{emp.name}</h3>
-                                        <div className="text-sm text-gray-500 flex flex-wrap items-center gap-2 mt-1">
-                                            {/* Role Selector or Display */}
+                            <div key={emp.id} className="card p-2 hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-bold text-sm text-[var(--color-dark)] truncate">{emp.name}</h3>
+                                            {workingHours > 0 && (
+                                                <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                                    {workingHours}h
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-gray-500 flex flex-wrap items-center gap-1 mt-0.5">
                                             {emp.additionalRoles && emp.additionalRoles.length > 0 ? (
                                                 <select
                                                     value={currentRole}
                                                     onChange={(e) => handleRoleChange(emp.id, e.target.value)}
-                                                    className="text-xs border-none bg-gray-100 rounded px-2 py-1 cursor-pointer focus:ring-0 font-medium text-gray-700"
+                                                    className="text-[10px] border-none bg-gray-100 rounded px-1 py-0.5 cursor-pointer focus:ring-0 font-medium text-gray-700 h-5"
                                                 >
-                                                    <option value={emp.role}>{emp.role} (Pri)</option>
+                                                    <option value={emp.role}>{emp.role}</option>
                                                     {emp.additionalRoles.map(r => (
                                                         <option key={r.role} value={r.role}>{r.role}</option>
                                                     ))}
                                                 </select>
                                             ) : (
-                                                <span className="bg-gray-100 px-2 py-1 rounded text-xs font-medium">{emp.role}</span>
+                                                <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] font-medium">{emp.role}</span>
                                             )}
                                             <span className="text-gray-300">|</span>
-                                            <span className="font-mono text-blue-600 font-bold text-xs">${effectiveRate}/day</span>
+                                            <span className="font-mono text-blue-600 font-bold text-[10px]">${effectiveRate}</span>
                                         </div>
                                     </div>
-                                    {workingHours > 0 && (
-                                        <span className="text-xs font-bold bg-blue-100 text-blue-800 px-2 py-1 rounded-full whitespace-nowrap ml-2">
-                                            {workingHours} Hrs
-                                        </span>
-                                    )}
                                 </div>
 
-                                <div className="mb-4">
-                                    <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase mb-1 block">Work Site</label>
+                                <div className="mb-2">
                                     <select
-                                        className="input text-xs p-2 w-full"
+                                        className="input text-[11px] p-1 h-7 w-full border-gray-200"
                                         value={currentSiteId}
                                         onChange={(e) => handleSiteChange(emp.id, e.target.value)}
                                     >
-                                        <option value="">No Specific Site</option>
+                                        <option value="">No Site</option>
                                         {sites.map(s => (
                                             <option key={s.id} value={s.id}>{s.name}</option>
                                         ))}
                                     </select>
                                 </div>
 
-                                {/* Custom Time Inputs */}
-                                <div className="grid grid-cols-2 gap-2 mb-4">
-                                    <div>
-                                        <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase mb-1 block">Start Time</label>
+                                <div className="grid grid-cols-2 gap-1.5 mb-2">
+                                    <div className="relative">
                                         <input
                                             type="time"
-                                            className="input text-xs p-1 w-full"
+                                            className="input text-[11px] p-0.5 h-7 w-full text-center"
                                             value={startTime}
                                             onChange={(e) => handleTimeChange(emp.id, 'startTime', e.target.value)}
                                         />
                                     </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase mb-1 block">End Time</label>
+                                    <div className="relative">
                                         <input
                                             type="time"
-                                            className="input text-xs p-1 w-full"
+                                            className="input text-[11px] p-0.5 h-7 w-full text-center"
                                             value={endTime}
                                             onChange={(e) => handleTimeChange(emp.id, 'endTime', e.target.value)}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1">
                                     <button
                                         onClick={() => setStatus(emp.id, 'present')}
-                                        className="btn flex-1 flex flex-col items-center justify-center p-2 h-auto"
+                                        className="btn flex-1 flex items-center justify-center gap-1 p-1 h-8"
                                         style={{
                                             backgroundColor: status === 'present' ? 'var(--color-success-bg)' : 'transparent',
                                             border: status === 'present' ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
                                             color: status === 'present' ? 'var(--color-success)' : 'var(--color-text-muted)',
                                             opacity: status === 'present' ? 1 : 0.7
                                         }}
-                                        title="Shift: 08:00 - 18:00 (10h)"
+                                        title="10h Shift"
                                     >
-                                        <Check size={18} className="mb-1" />
-                                        <span className="text-[10px] font-bold">10 Hr</span>
+                                        <Check size={14} />
+                                        <span className="text-[10px] font-bold">10h</span>
                                     </button>
 
                                     <button
                                         onClick={() => setStatus(emp.id, 'half-day')}
-                                        className="btn flex-1 flex flex-col items-center justify-center p-2 h-auto"
+                                        className="btn flex-1 flex items-center justify-center gap-1 p-1 h-8"
                                         style={{
                                             backgroundColor: status === 'half-day' ? 'var(--color-warning-bg)' : 'transparent',
                                             border: status === 'half-day' ? '1px solid var(--color-warning)' : '1px solid var(--color-border)',
                                             color: status === 'half-day' ? 'var(--color-warning)' : 'var(--color-text-muted)',
                                             opacity: status === 'half-day' ? 1 : 0.7
                                         }}
-                                        title="Shift: 08:00 - 13:00 (5h)"
+                                        title="5h Shift"
                                     >
-                                        <Clock size={18} className="mb-1" />
-                                        <span className="text-[10px] font-bold">5 Hr</span>
+                                        <Clock size={14} />
+                                        <span className="text-[10px] font-bold">5h</span>
                                     </button>
 
                                     <button
                                         onClick={() => setStatus(emp.id, 'absent')}
-                                        className="btn flex-1 flex flex-col items-center justify-center p-2 h-auto"
+                                        className="btn flex-1 flex items-center justify-center gap-1 p-1 h-8"
                                         style={{
                                             backgroundColor: status === 'absent' ? 'var(--color-danger-bg)' : 'transparent',
                                             border: status === 'absent' ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
                                             color: status === 'absent' ? 'var(--color-danger)' : 'var(--color-text-muted)',
                                             opacity: status === 'absent' ? 1 : 0.7
                                         }}
-                                        title="Clear Hours"
+                                        title="Reset"
                                     >
-                                        <X size={18} className="mb-1" />
-                                        <span className="text-[10px] font-bold">Reset</span>
+                                        <X size={14} />
+                                        <span className="text-[10px] font-bold">Res</span>
                                     </button>
                                 </div>
                             </div>

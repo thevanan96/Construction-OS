@@ -194,6 +194,28 @@ export default function EmployeesPage() {
         }
 
         await updateEmployee(employeeId, updatedEmployee);
+
+        // Update local form data if we are currently editing this employee
+        if (editingId === employeeId) {
+            const isPrimary = roleName === 'primary';
+            const isEffectiveNow = new Date(effectiveDate) <= new Date();
+
+            if (isEffectiveNow) {
+                if (isPrimary) {
+                    setFormData(prev => ({ ...prev, dailyRate: newRateNum.toString(), rateHistory: updatedEmployee.rateHistory || [] }));
+                } else {
+                    setFormData(prev => ({ ...prev, additionalRoles: updatedEmployee.additionalRoles || [] }));
+                }
+            } else {
+                // If future date, still update the background data structure (history) so another save doesn't overwrite it
+                if (isPrimary) {
+                    setFormData(prev => ({ ...prev, rateHistory: updatedEmployee.rateHistory || [] }));
+                } else {
+                    setFormData(prev => ({ ...prev, additionalRoles: updatedEmployee.additionalRoles || [] }));
+                }
+            }
+        }
+
         setShowIncrementModal(false);
     };
 
