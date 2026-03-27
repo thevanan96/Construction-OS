@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
     // const { login } = useApp(); // Removed
@@ -12,6 +12,7 @@ export default function LoginPage() {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -99,15 +100,26 @@ export default function LoginPage() {
                                 <label className="label">Password</label>
                                 <a href="#" className="link-forgot">Forgot password?</a>
                             </div>
-                            <input
-                                type="password"
-                                required
-                                autoComplete="current-password"
-                                className="input"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                            />
+                            <div className="input-wrapper">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    autoComplete="current-password"
+                                    className="input"
+                                    placeholder="••••••••"
+                                    value={formData.password}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                />
+                                <button
+                                    type="button"
+                                    tabIndex={-1}
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="input-icon-btn"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
                         </div>
 
                         <button

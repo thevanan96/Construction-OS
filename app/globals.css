@@ -342,6 +342,37 @@ tr:hover td {
   margin-bottom: 0.5rem;
 }
 
+/* Password Input Wrapper */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper .input {
+  padding-right: 3rem;
+}
+
+.input-icon-btn {
+  position: absolute;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s;
+  outline: none;
+}
+
+.input-icon-btn:hover,
+.input-icon-btn:focus-visible {
+  color: var(--color-dark);
+}
+
 /* Utilities */
 .text-right {
   text-align: right;
