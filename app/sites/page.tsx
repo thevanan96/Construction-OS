@@ -131,11 +131,10 @@ export default function SitesPage() {
                                         <span>{site.location}</span>
                                     </div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
+                                <div className="flex gap-2">
                                     <button
                                         onClick={() => handleEdit(site)}
-                                        className="btn"
-                                        style={{ backgroundColor: '#3B82F6', color: 'white', padding: '8px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        className="btn btn-info btn-icon"
                                         title="Edit"
                                         type="button"
                                     >
@@ -143,8 +142,7 @@ export default function SitesPage() {
                                     </button>
                                     <button
                                         onClick={() => removeSite(site.id)}
-                                        className="btn"
-                                        style={{ backgroundColor: '#EF4444', color: 'white', padding: '8px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                        className="btn btn-danger btn-icon"
                                         title="Delete"
                                         type="button"
                                     >

@@ -309,8 +309,7 @@ export default function EmployeesPage() {
                                     <button
                                         type="button"
                                         onClick={handleAddRole}
-                                        className="btn btn-sm btn-primary flex items-center gap-1"
-                                        style={{ backgroundColor: '#3B82F6', color: 'white', padding: '4px 8px', fontSize: '12px' }}
+                                        className="btn btn-sm btn-info flex items-center gap-1 text-xs"
                                     >
                                         <Plus size={14} /> Add Role
                                     </button>
@@ -354,8 +353,7 @@ export default function EmployeesPage() {
                                         <button
                                             type="button"
                                             onClick={() => handleRemoveRole(index)}
-                                            className="btn btn-sm"
-                                            style={{ backgroundColor: '#FECACA', color: '#DC2626', padding: '8px', minWidth: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none' }}
+                                            className="btn btn-sm btn-danger-subtle btn-icon"
                                             title="Remove Role"
                                         >
                                             <Trash2 size={16} />
@@ -531,20 +529,18 @@ export default function EmployeesPage() {
                                                 {emp.active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td style={{ textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+                                        <td className="text-center">
+                                            <div className="flex justify-center gap-2">
                                                 <button
                                                     onClick={() => handleEdit(emp)}
-                                                    className="btn"
-                                                    style={{ backgroundColor: '#3B82F6', color: 'white', padding: '8px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    className="btn btn-info btn-icon"
                                                     title="Edit"
                                                 >
                                                     <Edit size={16} />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(emp.id, emp.name)}
-                                                    className="btn"
-                                                    style={{ backgroundColor: '#EF4444', color: 'white', padding: '8px', minWidth: '36px', minHeight: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    className="btn btn-danger btn-icon"
                                                     title="Delete"
                                                 >
                                                     <Trash2 size={16} />

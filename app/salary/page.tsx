@@ -207,22 +207,22 @@ export default function SalaryPage() {
                                     </div>
                                 </div>
 
-                                <div className="mb-6" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                <div className="mb-6 flex flex-col gap-2">
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-[var(--color-text-muted)]">Total Hours</span>
+                                        <span className="text-slate-500">Total Hours</span>
                                         <span className="font-medium bg-blue-50 text-blue-700 px-2 rounded-full text-xs py-0.5">{totalHours.toFixed(1)} Hrs</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-[var(--color-text-muted)]">Total Earned</span>
-                                        <span className="font-medium text-[var(--color-dark)]">${totalEarned.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                        <span className="text-slate-500">Total Earned</span>
+                                        <span className="font-medium text-slate-900">${totalEarned.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-[var(--color-text-muted)]">Paid So Far</span>
-                                        <span className="font-medium" style={{ color: 'var(--color-success)' }}>-${totalPaid.toLocaleString()}</span>
+                                        <span className="text-slate-500">Paid So Far</span>
+                                        <span className="font-medium text-success">-${totalPaid.toLocaleString()}</span>
                                     </div>
-                                    <div className="pt-3 flex justify-between items-center" style={{ borderTop: '1px solid var(--color-border)' }}>
-                                        <span className="font-bold text-[var(--color-dark)]">Balance Due</span>
-                                        <span className="font-bold text-lg" style={{ color: balance > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+                                    <div className="pt-3 flex justify-between items-center border-t border-gray-100">
+                                        <span className="font-bold text-slate-900">Balance Due</span>
+                                        <span className={`font-bold text-lg ${balance > 0 ? 'text-danger' : 'text-slate-500'}`}>
                                             ${balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                                         </span>
                                     </div>
@@ -231,16 +231,14 @@ export default function SalaryPage() {
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => setViewDetailsEmployee(emp.id)}
-                                        className="btn btn-outline flex-1"
-                                        style={{ padding: '0.5rem' }}
+                                        className="btn btn-outline flex-1 p-2"
                                     >
                                         <FileText size={18} />
                                         Details
                                     </button>
                                     <button
                                         onClick={() => setSelectedEmployee(emp.id)}
-                                        className="btn btn-primary flex-1"
-                                        style={{ padding: '0.5rem' }}
+                                        className="btn btn-primary flex-1 p-2"
                                     >
                                         <BadgeDollarSign size={18} />
                                         Pay

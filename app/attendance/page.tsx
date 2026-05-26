@@ -299,13 +299,7 @@ export default function AttendancePage() {
                                 <div className="flex items-center gap-1">
                                     <button
                                         onClick={() => setStatus(emp.id, 'present')}
-                                        className="btn flex-1 flex items-center justify-center gap-1 p-1 h-8"
-                                        style={{
-                                            backgroundColor: status === 'present' ? 'var(--color-success-bg)' : 'transparent',
-                                            border: status === 'present' ? '1px solid var(--color-success)' : '1px solid var(--color-border)',
-                                            color: status === 'present' ? 'var(--color-success)' : 'var(--color-text-muted)',
-                                            opacity: status === 'present' ? 1 : 0.7
-                                        }}
+                                        className={`btn btn-attendance flex-1 flex items-center justify-center gap-1 p-1 h-8 ${status === 'present' ? 'active-present' : ''}`}
                                         title="10h Shift"
                                     >
                                         <Check size={14} />
@@ -314,13 +308,7 @@ export default function AttendancePage() {
 
                                     <button
                                         onClick={() => setStatus(emp.id, 'half-day')}
-                                        className="btn flex-1 flex items-center justify-center gap-1 p-1 h-8"
-                                        style={{
-                                            backgroundColor: status === 'half-day' ? 'var(--color-warning-bg)' : 'transparent',
-                                            border: status === 'half-day' ? '1px solid var(--color-warning)' : '1px solid var(--color-border)',
-                                            color: status === 'half-day' ? 'var(--color-warning)' : 'var(--color-text-muted)',
-                                            opacity: status === 'half-day' ? 1 : 0.7
-                                        }}
+                                        className={`btn btn-attendance flex-1 flex items-center justify-center gap-1 p-1 h-8 ${status === 'half-day' ? 'active-halfday' : ''}`}
                                         title="5h Shift"
                                     >
                                         <Clock size={14} />
@@ -329,13 +317,7 @@ export default function AttendancePage() {
 
                                     <button
                                         onClick={() => setStatus(emp.id, 'absent')}
-                                        className="btn flex-1 flex items-center justify-center gap-1 p-1 h-8"
-                                        style={{
-                                            backgroundColor: status === 'absent' ? 'var(--color-danger-bg)' : 'transparent',
-                                            border: status === 'absent' ? '1px solid var(--color-danger)' : '1px solid var(--color-border)',
-                                            color: status === 'absent' ? 'var(--color-danger)' : 'var(--color-text-muted)',
-                                            opacity: status === 'absent' ? 1 : 0.7
-                                        }}
+                                        className={`btn btn-attendance flex-1 flex items-center justify-center gap-1 p-1 h-8 ${status === 'absent' ? 'active-absent' : ''}`}
                                         title="Reset"
                                     >
                                         <X size={14} />
