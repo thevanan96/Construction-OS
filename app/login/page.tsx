@@ -45,7 +45,7 @@ export default function LoginPage() {
                     </div>
 
                     <div className="auth-showcase">
-                        <h2>Keep every site day organized before payroll becomes messy.</h2>
+                        <h2>Ke every site day organized before payroll becomes messy.</h2>
                         <p>Track employees, site attendance, hours, and payment exposure in one focused operations workspace.</p>
                         <div className="brand-features">
                             <Feature icon={HardHat} title="Crew Records" text="Roles, rates, contacts, and active status stay ready for daily use." />
