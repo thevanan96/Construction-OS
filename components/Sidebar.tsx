@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut } from 'lucide-react';
-import { clsx } from 'clsx';
 import { useApp } from '@/lib/store';
 
 const navItems = [

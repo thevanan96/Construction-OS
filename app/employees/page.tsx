@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Plus, Search, User, Edit, Trash2, X, TrendingUp } from 'lucide-react';
+import { BadgeCheck, BriefcaseBusiness, Edit, Phone, Plus, Search, Trash2, TrendingUp, User, Users, X } from 'lucide-react';
 import { Employee } from '@/lib/types';
 
 export default function EmployeesPage() {
@@ -149,7 +149,7 @@ export default function EmployeesPage() {
         let updatedEmployee = { ...employeeToUpdate };
 
         if (roleName === 'primary') {
-            let currentHistory = [...(updatedEmployee.rateHistory || [])];
+            const currentHistory = [...(updatedEmployee.rateHistory || [])];
 
             // Backfill current rate if history is empty
             if (currentHistory.length === 0) {
@@ -170,7 +170,7 @@ export default function EmployeesPage() {
             // Update Secondary Role
             const updatedRoles = (updatedEmployee.additionalRoles || []).map(r => {
                 if (r.role === roleName) {
-                    let currentHistory = [...(r.rateHistory || [])];
+                    const currentHistory = [...(r.rateHistory || [])];
 
                     // Backfill current rate for role if history is empty
                     if (currentHistory.length === 0) {
@@ -224,13 +224,19 @@ export default function EmployeesPage() {
         emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (emp.nic && emp.nic.toLowerCase().includes(searchTerm.toLowerCase()))
     );
+    const activeEmployees = employees.filter(emp => emp.active).length;
+    const totalRoles = employees.reduce((count, emp) => count + 1 + (emp.additionalRoles?.length || 0), 0);
+    const averageRate = employees.length
+        ? Math.round(employees.reduce((sum, emp) => sum + emp.dailyRate, 0) / employees.length)
+        : 0;
 
     return (
-        <div>
+        <div className="shell">
             <div className="page-header">
                 <div>
+                    <div className="page-kicker">Workforce</div>
                     <h1 className="page-title">Employees</h1>
-                    <p className="page-subtitle">Manage your workforce</p>
+                    <p className="page-subtitle">Manage worker profiles, roles, rates, and contact records.</p>
                 </div>
                 <button
                     onClick={handleOpenAdd}
@@ -241,18 +247,60 @@ export default function EmployeesPage() {
                 </button>
             </div>
 
+            <div className="insight-strip">
+                <div className="insight-card">
+                    <div>
+                        <span>Total Employees</span>
+                        <strong>{employees.length}</strong>
+                    </div>
+                    <div className="soft-icon">
+                        <Users size={20} />
+                    </div>
+                </div>
+                <div className="insight-card">
+                    <div>
+                        <span>Active Workforce</span>
+                        <strong>{activeEmployees}</strong>
+                    </div>
+                    <div className="soft-icon">
+                        <BadgeCheck size={20} />
+                    </div>
+                </div>
+                <div className="insight-card">
+                    <div>
+                        <span>Roles Tracked</span>
+                        <strong>{totalRoles}</strong>
+                    </div>
+                    <div className="soft-icon info">
+                        <BriefcaseBusiness size={20} />
+                    </div>
+                </div>
+                <div className="insight-card">
+                    <div>
+                        <span>Average Daily Rate</span>
+                        <strong>{averageRate}</strong>
+                    </div>
+                    <div className="soft-icon primary">
+                        <TrendingUp size={20} />
+                    </div>
+                </div>
+            </div>
+
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="card w-full max-w-md shadow-lg bg-white overflow-y-auto max-h-[90vh]">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-bold">{editingId ? 'Edit Employee' : 'Add New Employee'}</h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                    <div className="modal-card">
+                        <div className="modal-header">
+                            <div>
+                                <h2 className="modal-title">{editingId ? 'Edit Employee' : 'Add New Employee'}</h2>
+                                <p className="modal-subtitle">Keep workforce records accurate for attendance and payroll.</p>
+                            </div>
+                            <button onClick={() => setIsModalOpen(false)} className="icon-button" type="button">
                                 <X size={24} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            <div className="mb-4">
+                            <div className="form-field">
                                 <label className="label">Full Name</label>
                                 <input
                                     required
@@ -264,8 +312,8 @@ export default function EmployeesPage() {
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="mb-4">
+                            <div className="form-grid">
+                                <div className="form-field">
                                     <label className="label">Role / Designation</label>
                                     <input
                                         required
@@ -276,8 +324,8 @@ export default function EmployeesPage() {
                                         placeholder="e.g. Mason"
                                     />
                                 </div>
-                                <div className="mb-4">
-                                    <label className="label">Daily Rate ($)</label>
+                                <div className="form-field">
+                                    <label className="label">Daily Rate</label>
                                     <div className="flex gap-2">
                                         <input
                                             required
@@ -303,7 +351,7 @@ export default function EmployeesPage() {
                             </div>
 
                             {/* Secondary Roles Section */}
-                            <div className="mb-4 border-t border-gray-100 pt-4">
+                            <div className="form-field border-t border-gray-100 pt-4">
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="label text-sm font-semibold text-gray-500">Secondary Roles (Optional)</label>
                                     <button
@@ -362,7 +410,7 @@ export default function EmployeesPage() {
                                 ))}
                             </div>
 
-                            <div className="mb-4">
+                            <div className="form-field">
                                 <label className="label">Mobile Number</label>
                                 <input
                                     required
@@ -374,7 +422,7 @@ export default function EmployeesPage() {
                                 />
                             </div>
 
-                            <div className="mb-4">
+                            <div className="form-field">
                                 <label className="label">NIC Number</label>
                                 <input
                                     required
@@ -386,7 +434,7 @@ export default function EmployeesPage() {
                                 />
                             </div>
 
-                            <div className="mb-4">
+                            <div className="form-field">
                                 <label className="label">Joining Date</label>
                                 <input
                                     required
@@ -419,25 +467,29 @@ export default function EmployeesPage() {
             {/* Increment Modal */}
             {showIncrementModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
-                    <div className="card w-full max-w-sm shadow-xl bg-white p-6">
-                        <h3 className="text-lg font-bold mb-4">Add Salary Increment</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Adding increment for <span className="font-semibold text-gray-700">{incrementData.roleName === 'primary' ? 'Primary Role' : incrementData.roleName}</span>
-                        </p>
+                    <div className="modal-card max-w-sm">
+                        <div className="modal-header">
+                            <div>
+                                <h3 className="modal-title">Add Rate Increment</h3>
+                                <p className="modal-subtitle">
+                                    {incrementData.roleName === 'primary' ? 'Primary Role' : incrementData.roleName}
+                                </p>
+                            </div>
+                        </div>
 
-                        <div className="mb-4">
-                            <label className="label">New Daily Rate ($)</label>
+                        <div className="form-field">
+                            <label className="label">New Daily Rate</label>
                             <input
                                 type="number"
-                                className="input text-lg font-bold text-blue-600"
+                                className="input text-lg font-bold"
                                 value={incrementData.newRate}
                                 onChange={e => setIncrementData({ ...incrementData, newRate: Number(e.target.value) })}
                                 autoFocus
                             />
-                            <p className="text-xs text-gray-400 mt-1">Current Rate: ${incrementData.currentRate}</p>
+                            <p className="helper-text">Current rate: {incrementData.currentRate}</p>
                         </div>
 
-                        <div className="mb-6">
+                        <div className="form-field mb-6">
                             <label className="label">Effective From</label>
                             <input
                                 type="date"
@@ -467,92 +519,116 @@ export default function EmployeesPage() {
                 </div>
             )}
 
-            <div className="card mb-6">
-                <div className="flex items-center gap-2 mb-4 p-2 rounded border border-[var(--color-border)]">
-                    <Search size={18} className="text-[var(--color-text-muted)]" />
-                    <input
-                        type="text"
-                        placeholder="Search by name, role, or NIC..."
-                        className="input border-none bg-transparent p-0 focus:outline-none"
-                        style={{ border: 'none' }}
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+            <div className="workbench-panel mb-6">
+                <div className="workbench-header">
+                    <div>
+                        <h2 className="workbench-title">Workforce Directory</h2>
+                        <p className="workbench-meta">
+                            Showing {filteredEmployees.length} of {employees.length} employees
+                        </p>
+                    </div>
+                    <div className="search-box" style={{ minWidth: 320 }}>
+                        <Search size={18} className="text-[var(--color-text-muted)]" />
+                        <input
+                            type="text"
+                            placeholder="Search name, role, or NIC..."
+                            className="input"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
 
-                {filteredEmployees.length === 0 ? (
-                    <div className="text-center py-12 text-[var(--color-text-muted)]">
-                        <User size={48} className="mx-auto mb-3 opacity-20" />
-                        <p>No employees found. Add one to get started.</p>
-                    </div>
-                ) : (
-                    <div className="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Role</th>
-                                    <th>Mobile</th>
-                                    <th>NIC</th>
-                                    <th>Daily Rate</th>
-                                    <th>Status</th>
-                                    <th style={{ textAlign: 'center', width: '140px' }}>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredEmployees.map(emp => (
-                                    <tr key={emp.id}>
-                                        <td className="font-medium text-[var(--color-text-main)]">
-                                            {emp.name}
-                                            <div className="text-xs text-[var(--color-text-muted)] md:hidden">
-                                                {emp.role}
-                                                {emp.additionalRoles && emp.additionalRoles.length > 0 && (
-                                                    <span className="text-xs ml-1 text-blue-600">
-                                                        (+{emp.additionalRoles.length})
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="text-[var(--color-text-muted)] hidden md:table-cell">
-                                            {emp.role}
-                                            {emp.additionalRoles && emp.additionalRoles.length > 0 && (
-                                                <div className="text-[10px] text-blue-600">
-                                                    +{emp.additionalRoles.map(r => r.role).join(', ')}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="text-[var(--color-text-muted)] font-mono text-sm">{emp.phone || '-'}</td>
-                                        <td className="text-[var(--color-text-muted)] font-mono text-sm uppercase">{emp.nic || '-'}</td>
-                                        <td className="text-[var(--color-text-main)] font-mono">${emp.dailyRate}</td>
-                                        <td>
-                                            <span className={`badge ${emp.active ? 'badge-active' : 'badge-inactive'}`}>
-                                                {emp.active ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="text-center">
-                                            <div className="flex justify-center gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(emp)}
-                                                    className="btn btn-info btn-icon"
-                                                    title="Edit"
-                                                >
-                                                    <Edit size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(emp.id, emp.name)}
-                                                    className="btn btn-danger btn-icon"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </td>
+                <div className="workbench-body">
+                    {filteredEmployees.length === 0 ? (
+                        <div className="empty-state">
+                        <div>
+                            <User size={44} className="mx-auto" />
+                            <h3>No employees found</h3>
+                            <p>Add your first worker or adjust the search term.</p>
+                        </div>
+                        </div>
+                    ) : (
+                        <div className="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Employee</th>
+                                        <th>Roles</th>
+                                        <th>Contact</th>
+                                        <th>Daily Rate</th>
+                                        <th>Status</th>
+                                        <th style={{ textAlign: 'center', width: '140px' }}>Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                                </thead>
+                                <tbody>
+                                    {filteredEmployees.map(emp => (
+                                        <tr key={emp.id}>
+                                            <td>
+                                                <div className="employee-cell">
+                                                    <div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>
+                                                    <div className="min-w-0">
+                                                        <div className="font-bold text-[var(--color-text-main)]">{emp.name}</div>
+                                                        <div className="subtle-line">Joined {emp.joinedDate.split('T')[0]}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="pill-row">
+                                                    <span className="role-pill">{emp.role}</span>
+                                                    {emp.additionalRoles?.map(role => (
+                                                        <span key={role.role} className="role-pill">{role.role}</span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div className="subtle-stack">
+                                                    <div className="subtle-line">
+                                                        <Phone size={13} />
+                                                        <span className="font-mono">{emp.phone || 'No phone'}</span>
+                                                    </div>
+                                                    <div className="subtle-line">
+                                                        <span>NIC</span>
+                                                        <span className="font-mono uppercase">{emp.nic || '-'}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span className="rate-chip">
+                                                    <span>Rate</span>
+                                                    {emp.dailyRate}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`badge ${emp.active ? 'badge-active' : 'badge-inactive'}`}>
+                                                    {emp.active ? 'Active' : 'Inactive'}
+                                                </span>
+                                            </td>
+                                            <td className="text-center">
+                                                <div className="flex justify-center gap-2">
+                                                    <button
+                                                        onClick={() => handleEdit(emp)}
+                                                        className="btn btn-info btn-icon"
+                                                        title="Edit employee"
+                                                    >
+                                                        <Edit size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(emp.id, emp.name)}
+                                                        className="btn btn-danger btn-icon"
+                                                        title="Delete employee"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

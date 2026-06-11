@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import type { ElementType } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, CalendarCheck, Eye, EyeOff, HardHat, Loader2, Wallet } from 'lucide-react';
 
 export default function LoginPage() {
-    // const { login } = useApp(); // Removed
     const router = useRouter();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
@@ -29,55 +29,43 @@ export default function LoginPage() {
             setIsLoading(false);
         } else {
             router.push('/');
-            // Keep loading true while redirecting to avoid flicker
         }
     };
 
     return (
         <div className="auth-page">
-            {/* Left Side - Brand Showcase */}
-            <div className="auth-brand-side">
-                <div className="brand-content-top">
-                    <div className="brand-logo-large">
-                        <div className="logo-icon">C</div>
-                        <h1>Construction<span>OS</span></h1>
+            <aside className="auth-brand-side">
+                <div className="auth-brand-content">
+                    <div>
+                        <div className="brand-logo-large">
+                            <div className="logo-icon">C</div>
+                            <h1>Construction<span>OS</span></h1>
+                        </div>
+                        <p className="brand-tagline">Workforce control for busy construction teams.</p>
                     </div>
-                    <p className="brand-tagline">Managing your workforce, simplified.</p>
-                </div>
 
-                <div className="brand-testimonial">
-                    <blockquote>
-                        "ConstructionOS has completely transformed how we manage our daily attendance and payments. It's the digital foundation our sites needed."
-                    </blockquote>
-                    <div className="testimonial-author">
-                        <div className="author-avatar"></div>
-                        <div>
-                            <div className="author-name">Michael Torres</div>
-                            <div className="author-role">Site Supervisor, Apex Builders</div>
+                    <div className="auth-showcase">
+                        <h2>Keep every site day organized before payroll becomes messy.</h2>
+                        <p>Track employees, site attendance, hours, and payment exposure in one focused operations workspace.</p>
+                        <div className="brand-features">
+                            <Feature icon={HardHat} title="Crew Records" text="Roles, rates, contacts, and active status stay ready for daily use." />
+                            <Feature icon={CalendarCheck} title="Daily Attendance" text="Fast site logs with role, time, and status controls." />
+                            <Feature icon={Wallet} title="Payment Clarity" text="Balances and payment history stay visible without spreadsheet chasing." />
                         </div>
                     </div>
                 </div>
+            </aside>
 
-                <div className="brand-bg-decoration">
-                    <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <path d="M0 100 L100 0 L100 100 Z" fill="currentColor" />
-                    </svg>
-                </div>
-            </div>
-
-            {/* Right Side - Form */}
-            <div className="auth-form-side">
+            <main className="auth-form-side">
                 <div className="auth-form-container">
                     <div className="auth-header">
                         <h2>Welcome back</h2>
-                        <p>Enter your credentials to access your workspace.</p>
+                        <p>Sign in to manage today&apos;s site operations.</p>
                     </div>
 
                     {error && (
                         <div className="auth-error">
-                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                                <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" />
-                            </svg>
+                            <AlertCircle size={18} />
                             {error}
                         </div>
                     )}
@@ -106,7 +94,7 @@ export default function LoginPage() {
                                     required
                                     autoComplete="current-password"
                                     className="input"
-                                    placeholder="••••••••"
+                                    placeholder="Enter your password"
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                                 />
@@ -115,9 +103,9 @@ export default function LoginPage() {
                                     tabIndex={-1}
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="input-icon-btn"
-                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                                 >
-                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                                 </button>
                             </div>
                         </div>
@@ -125,12 +113,12 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="btn btn-primary btn-block btn-large mt-4 flex justify-center items-center gap-2"
+                            className="btn btn-primary btn-block btn-large mt-4"
                         >
                             {isLoading ? (
                                 <>
-                                    <Loader2 className="animate-spin" size={20} />
-                                    Signing in...
+                                    <Loader2 className="animate-spin" size={18} />
+                                    Signing in
                                 </>
                             ) : (
                                 'Sign In'
@@ -138,22 +126,31 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    <div className="auth-divider">
-                        <div className="divider-line"></div>
-                        <span className="divider-text">Or continue with</span>
-                    </div>
-
-                    <div className="auth-footer text-center">
-                        <span className="text-muted">Don't have an account? </span>
+                    <div className="auth-footer">
+                        <span>Don&apos;t have an account? </span>
                         <Link href="/signup" className="link-primary">
-                            Create a free account
+                            Create account
                         </Link>
                     </div>
                 </div>
 
                 <div className="auth-copyright">
-                    &copy; 2024 ConstructionOS. All rights reserved.
+                    ConstructionOS
                 </div>
+            </main>
+        </div>
+    );
+}
+
+function Feature({ icon: Icon, title, text }: { icon: ElementType; title: string; text: string }) {
+    return (
+        <div className="feature-item">
+            <div className="feature-icon">
+                <Icon size={20} />
+            </div>
+            <div>
+                <h3>{title}</h3>
+                <p>{text}</p>
             </div>
         </div>
     );

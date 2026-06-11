@@ -45,11 +45,12 @@ export default function SitesPage() {
     };
 
     return (
-        <div>
+        <div className="shell">
             <div className="page-header">
                 <div>
+                    <div className="page-kicker">Projects</div>
                     <h1 className="page-title">Sites</h1>
-                    <p className="page-subtitle">Manage construction sites</p>
+                    <p className="page-subtitle">Manage active job sites and location references for attendance.</p>
                 </div>
                 <button
                     onClick={() => {
@@ -66,10 +67,15 @@ export default function SitesPage() {
 
             {isAdding && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                    <div className="card w-full max-w-md shadow-lg bg-white">
-                        <h2 className="text-xl font-bold mb-4">{editingSite ? 'Edit Site' : 'Add New Site'}</h2>
+                    <div className="modal-card max-w-md">
+                        <div className="modal-header">
+                            <div>
+                                <h2 className="modal-title">{editingSite ? 'Edit Site' : 'Add New Site'}</h2>
+                                <p className="modal-subtitle">Site names appear in attendance and reports.</p>
+                            </div>
+                        </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="mb-4">
+                            <div className="form-field">
                                 <label className="label">Site Name</label>
                                 <input
                                     required
@@ -80,7 +86,7 @@ export default function SitesPage() {
                                     placeholder="e.g. Downtown Plaza"
                                 />
                             </div>
-                            <div className="mb-4">
+                            <div className="form-field">
                                 <label className="label">Location / Address</label>
                                 <input
                                     required
@@ -116,15 +122,21 @@ export default function SitesPage() {
 
             <div className="dashboard-grid">
                 {sites.length === 0 ? (
-                    <div className="text-center py-12 text-[var(--color-text-muted)] col-span-full">
-                        <Building size={48} className="mx-auto mb-3 opacity-20" />
-                        <p>No sites found. Add one to get started.</p>
+                    <div className="empty-state col-span-full">
+                        <div>
+                            <Building size={44} className="mx-auto" />
+                            <h3>No sites yet</h3>
+                            <p>Add a site before assigning daily attendance.</p>
+                        </div>
                     </div>
                 ) : (
                     sites.map(site => (
-                        <div key={site.id} className="card">
+                        <div key={site.id} className="card card-interactive">
                             <div className="flex justify-between items-start mb-4">
-                                <div>
+                                <div className="min-w-0">
+                                    <div className="soft-icon primary mb-3">
+                                        <Building size={20} />
+                                    </div>
                                     <h3 className="font-bold text-lg text-[var(--color-dark)]">{site.name}</h3>
                                     <div className="flex items-center gap-1 text-sm text-[var(--color-text-muted)] mt-1">
                                         <MapPin size={14} />

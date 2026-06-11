@@ -4,6 +4,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Employee, Attendance, Payment, Site, User } from './types';
 import { useRouter } from 'next/navigation';
 import { supabase } from './supabase';
+import type { Session } from '@supabase/supabase-js';
+
+type StoredRole = {
+    role: string;
+    dailyRate: number;
+    rateHistory?: { rate: number; effectiveDate: string }[];
+};
 
 interface AppContextType {
     employees: Employee[];
@@ -36,9 +43,75 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    async function fetchData() {
+        // Parallel Fetch for Performance
+        const [
+            { data: empData },
+            { data: siteData },
+            { data: attData },
+            { data: payData }
+        ] = await Promise.all([
+            supabase.from('employees').select('*').order('created_at', { ascending: false }),
+            supabase.from('sites').select('*').order('created_at', { ascending: false }),
+            supabase.from('attendance').select('*').order('date', { ascending: false }),
+            supabase.from('payments').select('*').order('date', { ascending: false })
+        ]);
+
+        if (empData) {
+            setEmployees(empData.map(e => ({
+                id: e.id,
+                name: e.name,
+                role: e.role,
+                dailyRate: e.daily_rate,
+                rateHistory: e.rate_history || [],
+                additionalRoles: ((e.additional_roles || []) as StoredRole[]).map((r) => ({
+                    ...r,
+                    rateHistory: r.rateHistory || []
+                })),
+                joinedDate: e.joined_date,
+                active: e.status === 'active',
+                phone: e.phone,
+                nic: e.nic
+            })));
+        }
+
+        if (siteData) {
+            setSites(siteData.map(s => ({
+                id: s.id,
+                name: s.name,
+                location: s.location,
+                active: s.status === 'active'
+            })));
+        }
+
+        if (attData) {
+            setAttendance(attData.map(a => ({
+                id: a.id,
+                employeeId: a.employee_id,
+                date: a.date,
+                status: a.status,
+                role: a.role,
+                site: a.site_id,
+                startTime: a.start_time,
+                endTime: a.end_time,
+                workingHours: a.working_hours
+            })));
+        }
+
+        if (payData) {
+            setPayments(payData.map(p => ({
+                id: p.id,
+                employeeId: p.employee_id,
+                amount: p.amount,
+                date: p.date,
+                notes: p.notes || ''
+            })));
+        }
+    }
+
     // Initial Data Fetch & Auth Subscription
     useEffect(() => {
-        const handleAuthChange = async (session: any) => {
+        const handleAuthChange = async (session: Session | null) => {
             if (session?.user) {
                 // Optimistically set user to unblock UI immediately
                 const optimisticUser: User = {
@@ -50,7 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setUser(optimisticUser);
 
                 // Parallel: Fetch Profile and Business Data
-                const [profileRes, _] = await Promise.all([
+                const [profileRes] = await Promise.all([
                     supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
                     fetchData()
                 ]);
@@ -108,72 +181,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
     }, []);
 
-    const fetchData = async () => {
-        // Parallel Fetch for Performance
-        const [
-            { data: empData },
-            { data: siteData },
-            { data: attData },
-            { data: payData }
-        ] = await Promise.all([
-            supabase.from('employees').select('*').order('created_at', { ascending: false }),
-            supabase.from('sites').select('*').order('created_at', { ascending: false }),
-            supabase.from('attendance').select('*').order('date', { ascending: false }),
-            supabase.from('payments').select('*').order('date', { ascending: false })
-        ]);
-
-        if (empData) {
-            setEmployees(empData.map(e => ({
-                id: e.id,
-                name: e.name,
-                role: e.role,
-                dailyRate: e.daily_rate,
-                rateHistory: e.rate_history || [],
-                additionalRoles: (e.additional_roles || []).map((r: any) => ({
-                    ...r,
-                    rateHistory: r.rateHistory || []
-                })),
-                joinedDate: e.joined_date,
-                active: e.status === 'active',
-                phone: e.phone,
-                nic: e.nic
-            })));
-        }
-
-        if (siteData) {
-            setSites(siteData.map(s => ({
-                id: s.id,
-                name: s.name,
-                location: s.location,
-                active: s.status === 'active'
-            })));
-        }
-
-        if (attData) {
-            setAttendance(attData.map(a => ({
-                id: a.id,
-                employeeId: a.employee_id,
-                date: a.date,
-                status: a.status,
-                role: a.role,
-                site: a.site_id,
-                startTime: a.start_time,
-                endTime: a.end_time,
-                workingHours: a.working_hours
-            })));
-        }
-
-        if (payData) {
-            setPayments(payData.map(p => ({
-                id: p.id,
-                employeeId: p.employee_id,
-                amount: p.amount,
-                date: p.date,
-                notes: p.notes || ''
-            })));
-        }
-    };
-
     const addEmployee = async (data: Omit<Employee, 'id'>) => {
         if (!user) {
             console.error('Add Employee failed: No user logged in');
@@ -226,7 +233,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             emp.id === id ? { ...emp, ...data } : emp
         ));
 
-        const updates: any = {};
+        const updates: Record<string, unknown> = {};
         if (data.name) updates.name = data.name;
         if (data.role) updates.role = data.role;
         if (data.dailyRate) updates.daily_rate = data.dailyRate;
@@ -351,7 +358,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Optimistic Update
         setPayments(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
 
-        const updates: any = {};
+        const updates: Record<string, unknown> = {};
         if (data.amount !== undefined) updates.amount = data.amount;
         if (data.date) updates.date = data.date;
         if (data.notes !== undefined) updates.notes = data.notes;
@@ -409,7 +416,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             site.id === id ? { ...site, ...data } : site
         ));
 
-        const updates: any = {};
+        const updates: Record<string, unknown> = {};
         if (data.name) updates.name = data.name;
         if (data.location) updates.location = data.location;
         if (data.active !== undefined) updates.status = data.active ? 'active' : 'on-hold';

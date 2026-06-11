@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import type { ElementType } from 'react';
 import { useApp } from '@/lib/store';
-import { ChevronLeft, ChevronRight, Check, X, Clock, Search } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Check, Clock, Search, Timer, UserCheck, X } from 'lucide-react';
 import { AttendanceStatus } from '@/lib/types';
 import { getSriLankaDate } from '@/lib/dateUtils';
 
@@ -22,20 +23,29 @@ export default function AttendancePage() {
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
     const [employeeRoles, setEmployeeRoles] = useState<Record<string, string>>({});
 
-    // Reset local overrides when date changes
-    useEffect(() => {
-        setEmployeeSites({});
-        setEmployeeRoles({});
-    }, [selectedDate]);
-
     const filteredEmployees = employees.filter(emp =>
         emp.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
+    const todaysRecords = attendance.filter(a => a.date === selectedDate);
+    const markedCount = todaysRecords.length;
+    const presentCount = todaysRecords.filter(a => a.status === 'present').length;
+    const halfDayCount = todaysRecords.filter(a => a.status === 'half-day').length;
+    const absentCount = todaysRecords.filter(a => a.status === 'absent').length;
+    const totalHours = todaysRecords.reduce((sum, record) => sum + (record.workingHours || 0), 0);
+    const completionPercent = employees.length ? Math.round((markedCount / employees.length) * 100) : 0;
 
     const handleDateChange = (days: number) => {
         const date = new Date(selectedDate);
         date.setDate(date.getDate() + days);
         setSelectedDate(date.toISOString().split('T')[0]);
+        setEmployeeSites({});
+        setEmployeeRoles({});
+    };
+
+    const handleSelectedDateChange = (date: string) => {
+        setSelectedDate(date);
+        setEmployeeSites({});
+        setEmployeeRoles({});
     };
 
     const getRecord = (employeeId: string) => {
@@ -163,46 +173,73 @@ export default function AttendancePage() {
     };
 
     return (
-        <div>
+        <div className="shell">
             <div className="page-header flex-col md:flex-row gap-4 items-start md:items-end">
                 <div>
+                    <div className="page-kicker">Daily log</div>
                     <h1 className="page-title">Attendance</h1>
-                    <p className="page-subtitle">Mark daily attendance & hours</p>
+                    <p className="page-subtitle">Mark roles, sites, hours, and status for each worker.</p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                    <div className="relative flex-1 sm:w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <div className="toolbar">
+                    <div className="search-box">
+                        <Search className="text-gray-400" size={18} />
                         <input
                             type="text"
                             placeholder="Search employee..."
-                            className="input pl-10 py-2 w-full"
+                            className="input"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
 
-                    <div className="flex items-center gap-4 bg-white p-2 rounded-lg border border-[var(--color-border)] shadow-sm">
-                        <button onClick={() => handleDateChange(-1)} className="p-2 hover:bg-gray-100 rounded-full">
+                    <div className="date-control">
+                        <button onClick={() => handleDateChange(-1)} className="icon-button" type="button" aria-label="Previous day">
                             <ChevronLeft size={20} />
                         </button>
                         <input
                             type="date"
                             value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="border-none font-medium focus:outline-none bg-transparent"
+                            onChange={(e) => handleSelectedDateChange(e.target.value)}
+                            className="input"
                         />
-                        <button onClick={() => handleDateChange(1)} className="p-2 hover:bg-gray-100 rounded-full">
+                        <button onClick={() => handleDateChange(1)} className="icon-button" type="button" aria-label="Next day">
                             <ChevronRight size={20} />
                         </button>
                     </div>
                 </div>
             </div>
 
+            <div className="attendance-summary">
+                <div className="attendance-focus">
+                    <div className="flex justify-between items-start gap-4 mb-4">
+                        <div>
+                            <div className="page-kicker">Completion</div>
+                            <h2 className="text-xl font-bold">{completionPercent}% marked</h2>
+                            <p className="page-subtitle">{markedCount} of {employees.length} employees recorded for {selectedDate}</p>
+                        </div>
+                        <div className="soft-icon">
+                            <CalendarDays size={20} />
+                        </div>
+                    </div>
+                    <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${completionPercent}%` }} />
+                    </div>
+                </div>
+                <AttendanceStat label="Present" value={presentCount} icon={UserCheck} tone="success" />
+                <AttendanceStat label="Half Day" value={halfDayCount} icon={Clock} tone="warning" />
+                <AttendanceStat label="Absent" value={absentCount} icon={X} tone="danger" />
+                <AttendanceStat label="Hours" value={totalHours.toFixed(1)} icon={Timer} tone="info" />
+            </div>
+
             <div className="dashboard-grid">
                 {filteredEmployees.length === 0 ? (
-                    <div className="text-center py-12 text-gray-400 col-span-full">
-                        {searchQuery ? 'No employees found matching your search.' : 'No employees found. Add employees first.'}
+                    <div className="empty-state col-span-full">
+                        <div>
+                            <Search size={44} className="mx-auto" />
+                                            <h3>{searchQuery ? 'No matching employees' : 'No employees yet'}</h3>
+                                            <p>{searchQuery ? 'Try a different name.' : 'Add employees before marking attendance.'}</p>
+                        </div>
                     </div>
                 ) : (
                     filteredEmployees.map(emp => {
@@ -232,23 +269,24 @@ export default function AttendancePage() {
                         const effectiveRate = getRateForDate(baseRate, rateHistory, selectedDate);
 
                         return (
-                            <div key={emp.id} className="card p-2 hover:shadow-md transition-shadow">
-                                <div className="flex justify-between items-start mb-2">
+                            <div key={emp.id} className="card attendance-card card-interactive">
+                                <div className="flex justify-between items-start">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-bold text-sm text-[var(--color-dark)] truncate">{emp.name}</h3>
+                                            <h3 className="font-bold text-[var(--color-dark)] truncate">{emp.name}</h3>
                                             {workingHours > 0 && (
-                                                <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                                                <span className="badge">
                                                     {workingHours}h
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="text-xs text-gray-500 flex flex-wrap items-center gap-1 mt-0.5">
+                                        <div className="text-xs text-gray-500 flex flex-wrap items-center gap-2 mt-1">
                                             {emp.additionalRoles && emp.additionalRoles.length > 0 ? (
                                                 <select
                                                     value={currentRole}
                                                     onChange={(e) => handleRoleChange(emp.id, e.target.value)}
-                                                    className="text-[10px] border-none bg-gray-100 rounded px-1 py-0.5 cursor-pointer focus:ring-0 font-medium text-gray-700 h-5"
+                                                    className="input"
+                                                    style={{ minHeight: 28, padding: '0 28px 0 8px', fontSize: '0.78rem' }}
                                                 >
                                                     <option value={emp.role}>{emp.role}</option>
                                                     {emp.additionalRoles.map(r => (
@@ -256,17 +294,17 @@ export default function AttendancePage() {
                                                     ))}
                                                 </select>
                                             ) : (
-                                                <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[10px] font-medium">{emp.role}</span>
+                                                <span className="badge">{emp.role}</span>
                                             )}
-                                            <span className="text-gray-300">|</span>
-                                            <span className="font-mono text-blue-600 font-bold text-[10px]">${effectiveRate}</span>
+                                            <span className="font-mono text-blue-600 font-bold">Rate {effectiveRate}</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="mb-2">
+                                <div>
+                                    <div className="attendance-field-label">Assigned Site</div>
                                     <select
-                                        className="input text-[11px] p-1 h-7 w-full border-gray-200"
+                                        className="input"
                                         value={currentSiteId}
                                         onChange={(e) => handleSiteChange(emp.id, e.target.value)}
                                     >
@@ -277,51 +315,53 @@ export default function AttendancePage() {
                                     </select>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-1.5 mb-2">
+                                <div className="grid grid-cols-2 gap-2">
                                     <div className="relative">
+                                        <div className="attendance-field-label">Start</div>
                                         <input
                                             type="time"
-                                            className="input text-[11px] p-0.5 h-7 w-full text-center"
+                                            className="input text-center"
                                             value={startTime}
                                             onChange={(e) => handleTimeChange(emp.id, 'startTime', e.target.value)}
                                         />
                                     </div>
                                     <div className="relative">
+                                        <div className="attendance-field-label">End</div>
                                         <input
                                             type="time"
-                                            className="input text-[11px] p-0.5 h-7 w-full text-center"
+                                            className="input text-center"
                                             value={endTime}
                                             onChange={(e) => handleTimeChange(emp.id, 'endTime', e.target.value)}
                                         />
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-1">
+                                <div className="attendance-actions">
                                     <button
                                         onClick={() => setStatus(emp.id, 'present')}
-                                        className={`btn btn-attendance flex-1 flex items-center justify-center gap-1 p-1 h-8 ${status === 'present' ? 'active-present' : ''}`}
+                                        className={`btn btn-attendance ${status === 'present' ? 'active-present' : ''}`}
                                         title="10h Shift"
                                     >
                                         <Check size={14} />
-                                        <span className="text-[10px] font-bold">10h</span>
+                                        <span>10h</span>
                                     </button>
 
                                     <button
                                         onClick={() => setStatus(emp.id, 'half-day')}
-                                        className={`btn btn-attendance flex-1 flex items-center justify-center gap-1 p-1 h-8 ${status === 'half-day' ? 'active-halfday' : ''}`}
+                                        className={`btn btn-attendance ${status === 'half-day' ? 'active-halfday' : ''}`}
                                         title="5h Shift"
                                     >
                                         <Clock size={14} />
-                                        <span className="text-[10px] font-bold">5h</span>
+                                        <span>5h</span>
                                     </button>
 
                                     <button
                                         onClick={() => setStatus(emp.id, 'absent')}
-                                        className={`btn btn-attendance flex-1 flex items-center justify-center gap-1 p-1 h-8 ${status === 'absent' ? 'active-absent' : ''}`}
+                                        className={`btn btn-attendance ${status === 'absent' ? 'active-absent' : ''}`}
                                         title="Reset"
                                     >
                                         <X size={14} />
-                                        <span className="text-[10px] font-bold">Res</span>
+                                        <span>Reset</span>
                                     </button>
                                 </div>
                             </div>
@@ -330,5 +370,26 @@ export default function AttendancePage() {
                 )}
             </div >
         </div >
+    );
+}
+
+function AttendanceStat({ label, value, icon: Icon, tone }: {
+    label: string;
+    value: string | number;
+    icon: ElementType;
+    tone: 'success' | 'warning' | 'danger' | 'info';
+}) {
+    const className = tone === 'danger' ? 'soft-icon danger' : tone === 'info' ? 'soft-icon info' : tone === 'warning' ? 'soft-icon primary' : 'soft-icon';
+
+    return (
+        <div className="insight-card">
+            <div>
+                <span>{label}</span>
+                <strong>{value}</strong>
+            </div>
+            <div className={className}>
+                <Icon size={20} />
+            </div>
+        </div>
     );
 }

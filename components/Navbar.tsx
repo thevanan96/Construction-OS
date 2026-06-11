@@ -63,6 +63,7 @@ export function Navbar() {
                     onClick={logout}
                     className="btn-logout navbar-desktop-only"
                     title="Sign Out"
+                    aria-label="Sign out"
                 >
                     <LogOut size={18} />
                 </button>
@@ -70,7 +71,8 @@ export function Navbar() {
                 {/* Mobile Menu Button */}
                 <button
                     onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="navbar-mobile-only p-2 text-white hover:bg-white/10 rounded-lg ml-2"
+                    className="navbar-mobile-only icon-button"
+                    aria-label="Open navigation menu"
                 >
                     {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>

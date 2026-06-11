@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { BadgeDollarSign, FileText, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react';
+import { BadgeDollarSign, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileText, Pencil, Search, Timer, Trash2, Wallet, X } from 'lucide-react';
 import { getSriLankaDate } from '@/lib/dateUtils';
+import { Employee } from '@/lib/types';
 
 // Helper to get applicable rate for a specific date from history
 const getRateForDate = (baseRate: number, history: { rate: number; effectiveDate: string }[] | undefined, date: string) => {
@@ -26,6 +27,7 @@ export default function SalaryPage() {
     const [payAmount, setPayAmount] = useState('');
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [isPaymentLogOpen, setIsPaymentLogOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Edit Payment State
     const [editingPayment, setEditingPayment] = useState<{ id: string, amount: string, date: string, notes: string } | null>(null);
@@ -40,7 +42,7 @@ export default function SalaryPage() {
     const totalPaidToday = todaysPayments.reduce((sum, p) => sum + p.amount, 0);
 
     // Calculation Logic
-    const getFinancials = (employee: any) => {
+    const getFinancials = (employee: Employee) => {
         // ... (existing logic)
         // 1. Calculate Earned
         const empAttendance = attendance.filter(a => a.employeeId === employee.id);
@@ -56,7 +58,7 @@ export default function SalaryPage() {
             let rateHistory = employee.rateHistory;
 
             if (recordRole !== employee.role) {
-                const roleData = employee.additionalRoles?.find((r: any) => r.role === recordRole);
+                const roleData = employee.additionalRoles?.find((r) => r.role === recordRole);
                 if (roleData) {
                     applicableRate = roleData.dailyRate;
                     rateHistory = roleData.rateHistory;
@@ -116,34 +118,87 @@ export default function SalaryPage() {
 
     const activeEmployee = selectedEmployee ? employees.find(e => e.id === selectedEmployee) : null;
     const detailsEmployee = viewDetailsEmployee ? employees.find(e => e.id === viewDetailsEmployee) : null;
+    const employeeFinancials = employees.map(employee => ({
+        employee,
+        financials: getFinancials(employee),
+    }));
+    const filteredFinancials = employeeFinancials.filter(({ employee }) =>
+        employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        employee.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (employee.nic && employee.nic.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    const totalEarnedAll = employeeFinancials.reduce((sum, item) => sum + item.financials.totalEarned, 0);
+    const totalPaidAll = employeeFinancials.reduce((sum, item) => sum + item.financials.totalPaid, 0);
+    const totalBalanceAll = employeeFinancials.reduce((sum, item) => sum + item.financials.balance, 0);
+    const totalHoursAll = employeeFinancials.reduce((sum, item) => sum + item.financials.totalHours, 0);
 
     return (
-        <div>
+        <div className="shell">
             <div className="page-header flex-col md:flex-row gap-4 items-start md:items-end">
                 <div>
+                    <div className="page-kicker">Payroll</div>
                     <h1 className="page-title">Salary & Payments</h1>
-                    <p className="page-subtitle">Track earnings & daily payments</p>
+                    <p className="page-subtitle">Track earned value, payments, balances, and worker histories.</p>
                 </div>
 
-                <div className="flex items-center gap-4 bg-white p-2 rounded-lg border border-[var(--color-border)] shadow-sm">
-                    <button onClick={() => handleDateChange(-1)} className="p-2 hover:bg-gray-100 rounded-full">
+                <div className="date-control">
+                    <button onClick={() => handleDateChange(-1)} className="icon-button" type="button" aria-label="Previous day">
                         <ChevronLeft size={20} />
                     </button>
                     <input
                         type="date"
                         value={selectedDate}
                         onChange={(e) => setSelectedDate(e.target.value)}
-                        className="border-none font-medium focus:outline-none bg-transparent"
+                        className="input"
                     />
-                    <button onClick={() => handleDateChange(1)} className="p-2 hover:bg-gray-100 rounded-full">
+                    <button onClick={() => handleDateChange(1)} className="icon-button" type="button" aria-label="Next day">
                         <ChevronRight size={20} />
                     </button>
                 </div>
             </div>
 
+            <div className="insight-strip">
+                <div className="insight-card">
+                    <div>
+                        <span>Total Earned</span>
+                        <strong>{totalEarnedAll.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                    </div>
+                    <div className="soft-icon info">
+                        <BadgeDollarSign size={20} />
+                    </div>
+                </div>
+                <div className="insight-card">
+                    <div>
+                        <span>Total Paid</span>
+                        <strong>{totalPaidAll.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                    </div>
+                    <div className="soft-icon">
+                        <Wallet size={20} />
+                    </div>
+                </div>
+                <div className="insight-card">
+                    <div>
+                        <span>Balance Due</span>
+                        <strong>{totalBalanceAll.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                    </div>
+                    <div className="soft-icon danger">
+                        <BadgeDollarSign size={20} />
+                    </div>
+                </div>
+                <div className="insight-card">
+                    <div>
+                        <span>Total Hours</span>
+                        <strong>{totalHoursAll.toFixed(1)}</strong>
+                    </div>
+                    <div className="soft-icon primary">
+                        <Timer size={20} />
+                    </div>
+                </div>
+            </div>
+
 
             {/* Daily Payment Summary */}
-            <div className="card mb-8 bg-blue-50 border-blue-100">
+            <div className="panel mb-8" style={{ background: 'var(--color-info-soft)' }}>
                 <div
                     className="flex justify-between items-center cursor-pointer select-none"
                     onClick={() => setIsPaymentLogOpen(!isPaymentLogOpen)}
@@ -152,7 +207,7 @@ export default function SalaryPage() {
                         <h2 className="text-lg font-bold text-blue-900">Payments on {selectedDate}</h2>
                         {isPaymentLogOpen ? <ChevronUp size={20} className="text-blue-700" /> : <ChevronDown size={20} className="text-blue-700" />}
                     </div>
-                    <span className="text-2xl font-bold text-blue-700">${totalPaidToday.toLocaleString()}</span>
+                    <span className="text-2xl font-bold text-blue-700">{totalPaidToday.toLocaleString()}</span>
                 </div>
 
                 {isPaymentLogOpen && (
@@ -174,7 +229,7 @@ export default function SalaryPage() {
                                                 <tr key={p.id} className="border-t border-blue-50">
                                                     <td className="p-3 font-medium">{emp?.name || 'Unknown'}</td>
                                                     <td className="p-3 text-gray-500">{p.notes}</td>
-                                                    <td className="p-3 text-right font-mono font-bold">${p.amount}</td>
+                                                    <td className="p-3 text-right font-mono font-bold">{p.amount}</td>
                                                 </tr>
                                             );
                                         })}
@@ -188,57 +243,91 @@ export default function SalaryPage() {
                 )}
             </div>
 
+            <div className="workbench-panel">
+                <div className="workbench-header">
+                    <div>
+                        <h2 className="workbench-title">Payroll Workbench</h2>
+                        <p className="workbench-meta">Showing {filteredFinancials.length} of {employees.length} employees</p>
+                    </div>
+                    <div className="search-box" style={{ minWidth: 320 }}>
+                        <Search size={18} className="text-[var(--color-text-muted)]" />
+                        <input
+                            type="text"
+                            placeholder="Search employee, role, or NIC..."
+                            className="input"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <div className="workbench-body">
             {employees.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">Add employees first.</div>
+                <div className="empty-state">
+                    <div>
+                        <BadgeDollarSign size={44} className="mx-auto" />
+                        <h3>No employees yet</h3>
+                        <p>Add employees before recording payments.</p>
+                    </div>
+                </div>
             ) : (
-                <div className="dashboard-grid">
-                    {employees.map(emp => {
-                        const { totalEarned, totalPaid, balance, totalHours } = getFinancials(emp); // Destructure result
+                filteredFinancials.length === 0 ? (
+                    <div className="empty-state">
+                        <div>
+                            <Search size={44} className="mx-auto" />
+                            <h3>No payroll records found</h3>
+                            <p>Try a different employee name, role, or NIC.</p>
+                        </div>
+                    </div>
+                ) : (
+                <div className="salary-grid">
+                    {filteredFinancials.map(({ employee: emp, financials }) => {
+                        const { totalEarned, totalPaid, balance, totalHours } = financials;
                         return (
-                            <div key={emp.id} className="card">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 className="font-bold text-lg text-[var(--color-dark)]">{emp.name}</h3>
-                                        <p className="text-sm text-[var(--color-text-muted)]">{emp.role}</p>
+                            <div key={emp.id} className="card card-interactive salary-card">
+                                <div className="salary-card-top">
+                                    <div className="employee-cell">
+                                        <div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>
+                                        <div>
+                                            <h3 className="font-bold text-lg text-[var(--color-dark)]">{emp.name}</h3>
+                                            <p className="text-sm text-[var(--color-text-muted)]">{emp.role}</p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-[var(--color-text-muted)]">Daily Rate</p>
-                                        <p className="font-mono font-bold text-[var(--color-dark)]">${emp.dailyRate}</p>
+                                    <span className="rate-chip"><span>Rate</span>{emp.dailyRate}</span>
+                                </div>
+
+                                <div className="salary-balance">
+                                    <span className="metric-label">Balance Due</span>
+                                    <strong className={balance > 0 ? 'text-danger' : ''}>
+                                        {balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                    </strong>
+                                </div>
+
+                                <div className="financial-grid">
+                                    <div className="financial-tile">
+                                        <span>Hours</span>
+                                        <strong>{totalHours.toFixed(1)}</strong>
+                                    </div>
+                                    <div className="financial-tile">
+                                        <span>Earned</span>
+                                        <strong>{totalEarned.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>
+                                    </div>
+                                    <div className="financial-tile">
+                                        <span>Paid</span>
+                                        <strong className="text-success">{totalPaid.toLocaleString()}</strong>
                                     </div>
                                 </div>
 
-                                <div className="mb-6 flex flex-col gap-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Total Hours</span>
-                                        <span className="font-medium bg-blue-50 text-blue-700 px-2 rounded-full text-xs py-0.5">{totalHours.toFixed(1)} Hrs</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Total Earned</span>
-                                        <span className="font-medium text-slate-900">${totalEarned.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-slate-500">Paid So Far</span>
-                                        <span className="font-medium text-success">-${totalPaid.toLocaleString()}</span>
-                                    </div>
-                                    <div className="pt-3 flex justify-between items-center border-t border-gray-100">
-                                        <span className="font-bold text-slate-900">Balance Due</span>
-                                        <span className={`font-bold text-lg ${balance > 0 ? 'text-danger' : 'text-slate-500'}`}>
-                                            ${balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-2">
+                                <div className="salary-actions">
                                     <button
                                         onClick={() => setViewDetailsEmployee(emp.id)}
-                                        className="btn btn-outline flex-1 p-2"
+                                        className="btn btn-outline"
                                     >
                                         <FileText size={18} />
                                         Details
                                     </button>
                                     <button
                                         onClick={() => setSelectedEmployee(emp.id)}
-                                        className="btn btn-primary flex-1 p-2"
+                                        className="btn btn-primary"
                                     >
                                         <BadgeDollarSign size={18} />
                                         Pay
@@ -248,20 +337,22 @@ export default function SalaryPage() {
                         );
                     })}
                 </div>
-            )
-            }
+                )
+            )}
+                </div>
+            </div>
 
             {/* Details Modal */}
             {
                 detailsEmployee && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                        <div className="card w-full max-w-2xl shadow-xl bg-white max-h-[90vh] overflow-y-auto">
-                            <div className="flex justify-between items-center mb-6">
+                        <div className="modal-card max-w-2xl">
+                            <div className="modal-header">
                                 <div>
-                                    <h2 className="text-xl font-bold">{detailsEmployee.name}</h2>
-                                    <p className="text-sm text-[var(--color-text-muted)]">Full Attendance Sheet</p>
+                                    <h2 className="modal-title">{detailsEmployee.name}</h2>
+                                    <p className="modal-subtitle">Attendance and payment history</p>
                                 </div>
-                                <button onClick={() => setViewDetailsEmployee(null)} className="p-2 hover:bg-gray-100 rounded-full">
+                                <button onClick={() => setViewDetailsEmployee(null)} className="icon-button" type="button">
                                     <X size={24} />
                                 </button>
                             </div>
@@ -293,7 +384,7 @@ export default function SalaryPage() {
                                                     let rateHistory = detailsEmployee.rateHistory;
 
                                                     if (recordRole !== detailsEmployee.role) {
-                                                        const roleData = detailsEmployee.additionalRoles?.find((r: any) => r.role === recordRole);
+                                                        const roleData = detailsEmployee.additionalRoles?.find((r) => r.role === recordRole);
                                                         if (roleData) {
                                                             applicableRate = roleData.dailyRate;
                                                             rateHistory = roleData.rateHistory;
@@ -333,7 +424,7 @@ export default function SalaryPage() {
                                                             <td className="text-sm font-medium">
                                                                 {displayTime || record.status}
                                                             </td>
-                                                            <td className="text-right font-mono">${earned.toFixed(0)}</td>
+                                                            <td className="text-right font-mono">{earned.toFixed(0)}</td>
                                                         </tr>
                                                     )
                                                 })}
@@ -362,7 +453,7 @@ export default function SalaryPage() {
                                                     <tr key={payment.id} className="group hover:bg-gray-50">
                                                         <td className="font-mono text-sm">{payment.date.split('T')[0]}</td>
                                                         <td className="text-sm text-[var(--color-text-muted)]">{payment.notes || '-'}</td>
-                                                        <td className="text-right font-mono font-bold text-[var(--color-success)]">${payment.amount}</td>
+                                                        <td className="text-right font-mono font-bold text-[var(--color-success)]">{payment.amount}</td>
                                                         <td className="text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
                                                                 onClick={() => setEditingPayment({
@@ -403,19 +494,24 @@ export default function SalaryPage() {
             {
                 selectedEmployee && activeEmployee && (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-                        <div className="card w-full max-w-sm shadow-xl bg-white">
-                            <h3 className="text-lg font-bold mb-4">Pay {activeEmployee.name}</h3>
+                        <div className="modal-card max-w-sm">
+                            <div className="modal-header">
+                                <div>
+                                    <h3 className="modal-title">Pay {activeEmployee.name}</h3>
+                                    <p className="modal-subtitle">Record a payment for the selected date.</p>
+                                </div>
+                            </div>
                             {/* Same Payment Modal Content */}
                             <div className="bg-gray-50 p-3 rounded mb-4 text-sm">
                                 <div className="flex justify-between mb-1">
                                     <span className="text-gray-500">Current Dues:</span>
-                                    <span className="font-bold">${getFinancials(activeEmployee).balance.toLocaleString()}</span>
+                                    <span className="font-bold">{getFinancials(activeEmployee).balance.toLocaleString()}</span>
                                 </div>
                             </div>
 
                             <form onSubmit={handlePay}>
                                 <div className="mb-4">
-                                    <label className="label">Amount to Pay ($)</label>
+                                    <label className="label">Amount to Pay</label>
                                     <input
                                         type="number"
                                         className="input text-lg"
@@ -452,10 +548,13 @@ export default function SalaryPage() {
             {/* Edit Payment Modal */}
             {editingPayment && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[60]">
-                    <div className="card w-full max-w-sm shadow-xl bg-white">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold">Edit Payment</h3>
-                            <button onClick={() => setEditingPayment(null)} className="p-1 hover:bg-gray-100 rounded-full">
+                    <div className="modal-card max-w-sm">
+                        <div className="modal-header">
+                            <div>
+                                <h3 className="modal-title">Edit Payment</h3>
+                                <p className="modal-subtitle">Update amount, date, or notes.</p>
+                            </div>
+                            <button onClick={() => setEditingPayment(null)} className="icon-button" type="button">
                                 <X size={20} />
                             </button>
                         </div>
@@ -482,7 +581,7 @@ export default function SalaryPage() {
                                 />
                             </div>
                             <div className="mb-3">
-                                <label className="label">Amount ($)</label>
+                                <label className="label">Amount</label>
                                 <input
                                     type="number"
                                     className="input w-full"

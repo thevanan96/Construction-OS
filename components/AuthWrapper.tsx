@@ -23,9 +23,13 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
 
     if (isLoading) {
         return (
-            <div className="flex min-h-screen w-full items-center justify-center bg-[var(--color-light)]">
-                <div className="animate-pulse text-[var(--color-primary)] font-bold text-xl">
-                    Loading ConstructionOS...
+            <div className="flex items-center justify-center" style={{ minHeight: '100vh', padding: '24px' }}>
+                <div className="panel text-center" style={{ width: 'min(100%, 360px)' }}>
+                    <div className="logo-icon mx-auto mb-4">C</div>
+                    <div className="animate-pulse font-bold text-lg" style={{ color: 'var(--color-dark)' }}>
+                        Preparing your workspace
+                    </div>
+                    <p className="page-subtitle">Syncing teams, sites, attendance, and payments.</p>
                 </div>
             </div>
         );
