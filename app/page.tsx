@@ -53,7 +53,7 @@ export default function Home() {
           color="orange"
         />
         <StatCard
-          title="Need to Pay"
+          title="Needs to Pay"
           value={`$${Math.max(0, needToPay).toLocaleString()}`}
           icon={Banknote}
           color="red"
