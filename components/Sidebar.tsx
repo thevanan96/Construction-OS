@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 const navItems = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Employees', href: '/employees', icon: Users },
     { name: 'Sites', href: '/sites', icon: Building },
     { name: 'Attendance', href: '/attendance', icon: CalendarCheck },
@@ -20,7 +21,8 @@ export function Sidebar() {
     return (
         <aside className="sidebar">
             <div className="brand">
-                <h1>Construction<span>OS</span></h1>
+                <Image src="/sitetrack-logo.png" alt="SiteTrack" width={910} height={330} />
+                <h1>SiteTrack</h1>
                 <p>Employee Management</p>
             </div>
             <nav className="nav-menu">

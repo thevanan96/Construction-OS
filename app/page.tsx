@@ -1,181 +1,242 @@
-'use client';
-
+import Image from 'next/image';
 import Link from 'next/link';
-import type { ElementType } from 'react';
-import { useApp } from '@/lib/store';
-import { Banknote, Building, CalendarCheck, Clock, FileText, Plus, UserCheck, Users, Wallet } from 'lucide-react';
+import {
+  CalendarCheck,
+  ClipboardList,
+  ExternalLink,
+  Linkedin,
+  Mail,
+  Phone,
+  Users,
+  Wallet,
+} from 'lucide-react';
 
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+const productCards = [
+  {
+    icon: Users,
+    title: 'Employee records',
+    text: 'Keep crew profiles, roles, rates, contact details, and active status ready for site operations.',
+  },
+  {
+    icon: CalendarCheck,
+    title: 'Attendance tracking',
+    text: 'Mark present, absent, half-day, working hours, and site assignments from one workflow.',
+  },
+  {
+    icon: Wallet,
+    title: 'Payment visibility',
+    text: 'Review earned amounts, payments made, and balances before payroll becomes messy.',
+  },
+];
 
-export default function Home() {
-  const { employees, attendance, payments, sites } = useApp();
+const workflowSteps = [
+  'Create employee and site records',
+  'Mark daily attendance and hours',
+  'Review salary exposure and payments',
+  'Export operational reports when needed',
+];
 
-  const today = new Date().toISOString().split('T')[0];
-  const todaysAttendance = attendance.filter((record) => record.date === today);
-  const presentToday = todaysAttendance.filter((record) => record.status === 'present').length;
-  const halfDayToday = todaysAttendance.filter((record) => record.status === 'half-day').length;
-  const absentToday = todaysAttendance.filter((record) => record.status === 'absent').length;
-  const totalHoursToday = todaysAttendance.reduce((sum, record) => sum + (record.workingHours || 0), 0);
-
-  const totalEarnings = attendance.reduce((acc, record) => {
-    const employee = employees.find((item) => item.id === record.employeeId);
-    if (!employee) return acc;
-
-    const hourlyRate = employee.dailyRate / 10;
-    return acc + hourlyRate * (record.workingHours || 0);
-  }, 0);
-
-  const totalPaid = payments.reduce((acc, curr) => acc + curr.amount, 0);
-  const balanceDue = Math.max(0, totalEarnings - totalPaid);
-  const activeSites = sites.filter((site) => site.active).length;
-  const activeEmployees = employees.filter((employee) => employee.active).length;
-
+export default function LandingPage() {
   return (
-    <div className="shell">
-      <header className="page-header">
-        <div>
-          <div className="page-kicker">Operations overview</div>
-          <h1 className="page-title">Today&apos;s workforce command center</h1>
-          <p className="page-subtitle">Track site staffing, attendance, and payment exposure from one clean view.</p>
-        </div>
-        <div className="toolbar">
-          <Link href="/employees" className="btn btn-outline">
-            <Plus size={18} />
-            Employee
-          </Link>
-          <Link href="/attendance" className="btn btn-primary">
-            <CalendarCheck size={18} />
-            Mark Attendance
-          </Link>
-        </div>
+    <div className="auth-landing marketing-home">
+      <header className="auth-topbar">
+        <Link href="/" className="auth-wordmark">
+          <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
+          <span>SiteTrack</span>
+        </Link>
+        <nav className="auth-nav" aria-label="Product">
+          <a href="#product">Product</a>
+          <a href="#workflow">Workflow</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#about">About</a>
+          <Link href="/login">Sign in</Link>
+          <Link href="/signup" className="auth-nav-cta">Create account</Link>
+        </nav>
       </header>
 
-      <section className="metric-grid mb-6">
-        <MetricCard
-          title="Active Workforce"
-          value={activeEmployees}
-          note={`${employees.length} total employee records`}
-          icon={Users}
-        />
-        <MetricCard
-          title="Present Today"
-          value={presentToday}
-          note={`${halfDayToday} half-day, ${absentToday} absent`}
-          icon={UserCheck}
-          tone="success"
-        />
-        <MetricCard
-          title="Open Sites"
-          value={activeSites}
-          note={`${sites.length} total site records`}
-          icon={Building}
-          tone="info"
-        />
-        <MetricCard
-          title="Balance Due"
-          value={formatNumber(balanceDue)}
-          note={`${formatNumber(totalPaid)} paid across all records`}
-          icon={Banknote}
-          tone="danger"
-        />
+      <main className="marketing-hero">
+        <section className="marketing-copy">
+          <div className="hero-badge">
+            <ClipboardList size={16} />
+            Construction workforce management
+          </div>
+          <h1>Site operations, attendance, and payment records in one workspace.</h1>
+          <p>
+            SiteTrack helps construction teams keep daily crew records clean,
+            payroll visibility clear, and site activity organized without spreadsheet chasing.
+          </p>
+          <div className="hero-actions">
+            <Link href="/signup" className="btn btn-primary btn-large">Start workspace</Link>
+            <a href="#product" className="btn btn-outline btn-large">Explore product</a>
+          </div>
+        </section>
+
+        <section className="site-hero-visual" aria-label="Construction site operations preview">
+          <Image
+            src="/sitetrack-hero-site.png"
+            alt="Construction site supervisors reviewing SiteTrack operations on a tablet"
+            width={1792}
+            height={1024}
+            priority
+          />
+          <div className="site-hero-overlay">
+            <div className="preview-topline">
+              <span>Today&apos;s site pulse</span>
+              <strong>Live</strong>
+            </div>
+            <div className="preview-metrics">
+              <div>
+                <span>Active crew</span>
+                <strong>48</strong>
+              </div>
+              <div>
+                <span>Present</span>
+                <strong>42</strong>
+              </div>
+              <div>
+                <span>Balance</span>
+                <strong>Rs. 186k</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <section id="product" className="marketing-section">
+        <div className="marketing-section-header">
+          <span>Product</span>
+          <h2>Built for the daily rhythm of construction sites.</h2>
+        </div>
+        <div className="marketing-card-grid">
+          {productCards.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title}>
+                <Icon size={24} />
+                <h3>{item.title}</h3>
+                <p>{item.text}</p>
+              </article>
+            );
+          })}
+        </div>
+        <div className="construction-image-grid">
+          <figure>
+            <Image
+              src="/sitetrack-workflow-site.png"
+              alt="Construction crew checking in at a site entrance with tablet attendance"
+              width={1792}
+              height={1024}
+            />
+            <figcaption>Morning check-in with site attendance controls.</figcaption>
+          </figure>
+          <figure>
+            <Image
+              src="/sitetrack-crew-panel.png"
+              alt="Construction managers reviewing site records and payment visibility"
+              width={1792}
+              height={1024}
+            />
+            <figcaption>Site records, reports, and payment visibility in one review flow.</figcaption>
+          </figure>
+        </div>
       </section>
 
-      <section className="content-grid">
-        <div className="panel">
-          <div className="section-header mb-4">
-            <div>
-              <h2 className="text-xl font-bold">Today&apos;s Site Pulse</h2>
-              <p className="page-subtitle">Attendance progress for {today}</p>
-            </div>
-            <div className="soft-icon primary">
-              <Clock size={20} />
-            </div>
-          </div>
-
-          <div className="list-stack">
-            <div className="detail-row">
-              <span>Employees marked</span>
-              <strong>{todaysAttendance.length} / {employees.length}</strong>
-            </div>
-            <div className="detail-row">
-              <span>Total hours logged</span>
-              <strong>{totalHoursToday.toFixed(1)} hrs</strong>
-            </div>
-            <div className="detail-row">
-              <span>Sites available</span>
-              <strong>{sites.length}</strong>
-            </div>
-            <div className="divider" />
-            <div className="toolbar">
-              <Link href="/attendance" className="btn btn-primary">
-                <CalendarCheck size={17} />
-                Continue Attendance
-              </Link>
-              <Link href="/reports" className="btn btn-outline">
-                <FileText size={17} />
-                Build Report
-              </Link>
-            </div>
+      <section id="workflow" className="marketing-section marketing-split">
+        <div className="marketing-section-header">
+          <span>Workflow</span>
+          <h2>From morning attendance to payment review.</h2>
+        </div>
+        <div className="workflow-visual-stack">
+          <Image
+            src="/sitetrack-workflow-site.png"
+            alt="Site supervisor recording crew attendance at a construction gate"
+            width={1792}
+            height={1024}
+          />
+          <div className="workflow-list">
+            {workflowSteps.map((step, index) => (
+              <div key={step}>
+                <strong>{String(index + 1).padStart(2, '0')}</strong>
+                <span>{step}</span>
+              </div>
+            ))}
           </div>
         </div>
+      </section>
 
-        <div className="panel">
-          <div className="section-header mb-4">
+      <section id="pricing" className="marketing-section pricing-panel">
+        <div>
+          <span>Pricing</span>
+          <h2>Simple workspace setup for construction teams.</h2>
+          <p>Start with the core workforce, attendance, reporting, and payment visibility tools. Custom rollout support can be handled through JTK LABS.</p>
+        </div>
+        <Link href="/contact" className="btn btn-primary btn-large">Contact JTK LABS</Link>
+      </section>
+
+      <section id="about" className="marketing-section about-strip">
+        <div className="landing-about-product">
+          <div className="about-product-heading">
+            <Image src="/sitetrack-mark.png" alt="" width={300} height={300} />
             <div>
-              <h2 className="text-xl font-bold">Payment Snapshot</h2>
-              <p className="page-subtitle">Current earnings and payment position</p>
-            </div>
-            <div className="soft-icon info">
-              <Wallet size={20} />
+              <h2>SiteTrack</h2>
+              <p>A JTK LABS product</p>
             </div>
           </div>
-
-          <div className="list-stack">
-            <div className="detail-row">
-              <span>Total earned</span>
-              <strong>{formatNumber(totalEarnings)}</strong>
-            </div>
-            <div className="detail-row">
-              <span>Total paid</span>
-              <strong>{formatNumber(totalPaid)}</strong>
-            </div>
-            <div className="detail-row">
-              <span>Balance due</span>
-              <strong className={balanceDue > 0 ? 'text-danger' : ''}>{formatNumber(balanceDue)}</strong>
-            </div>
-            <div className="divider" />
-            <Link href="/salary" className="btn btn-outline">
-              <Banknote size={17} />
-              Review Salary & Payments
+          <p>
+            SiteTrack is built for practical construction workforce management,
+            daily attendance, site records, and payment clarity.
+          </p>
+          <div className="about-actions">
+            <a href="https://jtklabs.net" target="_blank" rel="noreferrer" className="btn btn-outline btn-large">
+              Visit JTK LABS
+            </a>
+            <Link href="/contact" className="btn btn-dark btn-large">
+              Contact
             </Link>
           </div>
         </div>
+
+        <aside className="connect-card landing-connect-card">
+          <h2>Connect with us</h2>
+          <div className="connect-list">
+            <a href="https://www.linkedin.com/company/jtk-labs" target="_blank" rel="noreferrer" className="connect-item">
+              <span className="connect-icon info">
+                <Linkedin size={22} />
+              </span>
+              <span>
+                <small>LinkedIn</small>
+                <strong>JTK LABS</strong>
+              </span>
+              <ExternalLink size={16} />
+            </a>
+            <a href="mailto:info@jtklabs.net" className="connect-item">
+              <span className="connect-icon warning">
+                <Mail size={22} />
+              </span>
+              <span>
+                <small>Email</small>
+                <strong>info@jtklabs.net</strong>
+              </span>
+            </a>
+            <a href="https://wa.me/94756999010" target="_blank" rel="noreferrer" className="connect-item">
+              <span className="connect-icon success">
+                <Phone size={22} />
+              </span>
+              <span>
+                <small>WhatsApp support</small>
+                <strong>+94 75 699 9010</strong>
+              </span>
+            </a>
+          </div>
+        </aside>
       </section>
-    </div>
-  );
-}
 
-function MetricCard({ title, value, note, icon: Icon, tone = 'default' }: {
-  title: string;
-  value: number | string;
-  note: string;
-  icon: ElementType;
-  tone?: 'default' | 'success' | 'info' | 'danger';
-}) {
-  const iconClass = tone === 'danger' ? 'soft-icon danger' : tone === 'info' ? 'soft-icon info' : tone === 'success' ? 'soft-icon' : 'soft-icon primary';
-
-  return (
-    <div className="card metric-card card-interactive">
-      <div>
-        <p className="metric-label">{title}</p>
-        <p className="metric-value">{value}</p>
-        <p className="metric-note">{note}</p>
-      </div>
-      <div className={iconClass}>
-        <Icon size={21} />
-      </div>
+      <footer className="about-footer">
+        <span>© 2026 SiteTrack by JTK LABS. All rights reserved.</span>
+        <nav aria-label="Contact">
+          <Link href="/contact">Contact</Link>
+        </nav>
+      </footer>
     </div>
   );
 }

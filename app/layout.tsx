@@ -4,8 +4,8 @@ import { AppProvider } from '@/lib/store';
 import { AuthWrapper } from '@/components/AuthWrapper';
 
 export const metadata: Metadata = {
-  title: 'Construction Employee Management',
-  description: 'Manage employees, attendance, and daily salaries.',
+  title: 'SiteTrack',
+  description: 'Manage construction employees, site attendance, daily hours, and payments.',
 };
 
 export default function RootLayout({
