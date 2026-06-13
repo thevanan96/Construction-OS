@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut, FileText, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut, FileText, Menu, Settings, X } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 const navItems = [
@@ -14,6 +14,7 @@ const navItems = [
     { name: 'Attendance', href: '/attendance', icon: CalendarCheck },
     { name: 'Reports', href: '/reports', icon: FileText },
     { name: 'Salary', href: '/salary', icon: Banknote },
+    { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Navbar() {
@@ -51,7 +52,7 @@ export function Navbar() {
             </div>
 
             <div className="navbar-right">
-                <div className="user-profile">
+                <Link href="/settings" className={`user-profile user-profile-link ${pathname === '/settings' ? 'active' : ''}`}>
                     <div className="user-avatar">
                         {user?.name.charAt(0)}
                     </div>
@@ -59,7 +60,7 @@ export function Navbar() {
                         <span className="user-name">{user?.name}</span>
                         <span className="user-role">{user?.companyName}</span>
                     </div>
-                </div>
+                </Link>
                 <div className="vertical-divider navbar-desktop-only"></div>
                 <button
                     onClick={logout}
