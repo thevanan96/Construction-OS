@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut, FileText, Menu, X } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 const navItems = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Employees', href: '/employees', icon: Users },
     { name: 'Sites', href: '/sites', icon: Building },
     { name: 'Attendance', href: '/attendance', icon: CalendarCheck },
@@ -24,7 +25,8 @@ export function Navbar() {
         <header className="navbar">
             <div className="navbar-left">
                 <div className="navbar-brand">
-                    <h1>Construction<span>OS</span></h1>
+                    <Image src="/sitetrack-logo.png" alt="SiteTrack" width={910} height={330} priority />
+                    <span className="navbar-brand-text">SiteTrack</span>
                 </div>
 
                 <nav className="navbar-menu navbar-desktop-only">
