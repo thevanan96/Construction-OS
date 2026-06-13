@@ -29,6 +29,7 @@ interface AppContextType {
     addSite: (site: Omit<Site, 'id'>) => Promise<void>;
     updateSite: (id: string, data: Partial<Site>) => Promise<void>;
     removeSite: (id: string) => Promise<void>;
+    updateProfile: (data: Pick<User, 'name' | 'companyName'>) => Promise<void>;
     logout: () => void;
 }
 
@@ -435,6 +436,48 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!error) fetchData();
     };
 
+    const updateProfile = async (data: Pick<User, 'name' | 'companyName'>) => {
+        if (!user) return;
+
+        const trimmedName = data.name.trim();
+        const trimmedCompanyName = data.companyName.trim();
+
+        if (!trimmedName || !trimmedCompanyName) {
+            throw new Error('Name and company name are required.');
+        }
+
+        const previousUser = user;
+        const updatedUser = {
+            ...user,
+            name: trimmedName,
+            companyName: trimmedCompanyName
+        };
+
+        setUser(updatedUser);
+
+        const [{ error: profileError }, { error: metadataError }] = await Promise.all([
+            supabase.from('profiles').upsert({
+                id: user.id,
+                email: user.email,
+                full_name: trimmedName,
+                company_name: trimmedCompanyName
+            }),
+            supabase.auth.updateUser({
+                data: {
+                    full_name: trimmedName,
+                    company_name: trimmedCompanyName
+                }
+            })
+        ]);
+
+        const error = profileError || metadataError;
+
+        if (error) {
+            setUser(previousUser);
+            throw new Error(error.message);
+        }
+    };
+
     const logout = async () => {
         // 1. Clear local state immediately
         setUser(null);
@@ -455,6 +498,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         <AppContext.Provider value={{
             employees, attendance, payments, sites, user, isLoading,
             addEmployee, updateEmployee, deleteEmployee, markAttendance, addPayment, updatePayment, deletePayment, addSite, updateSite, removeSite,
+            updateProfile,
             logout
         }}>
             {children}

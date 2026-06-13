@@ -247,6 +247,18 @@ button {
   gap: 10px;
 }
 
+.user-profile-link {
+  min-height: 42px;
+  border-radius: var(--radius-md);
+  padding: 3px 6px;
+  transition: background 0.18s ease;
+}
+
+.user-profile-link:hover,
+.user-profile-link.active {
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .user-avatar {
   display: grid;
   width: 36px;
@@ -1109,11 +1121,84 @@ tbody tr:hover td {
 .money-value {
   color: var(--color-dark);
   font-weight: 800;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .divider {
   height: 1px;
   background: var(--color-border);
+}
+
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 16px;
+  align-items: start;
+}
+
+.settings-form {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-actions {
+  justify-content: flex-end;
+}
+
+.settings-summary {
+  text-align: center;
+}
+
+.settings-avatar {
+  display: grid;
+  width: 72px;
+  height: 72px;
+  place-items: center;
+  margin: 0 auto 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: 1.7rem;
+  font-weight: 900;
+}
+
+.settings-summary h2 {
+  color: var(--color-dark);
+  font-size: 1.2rem;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.settings-summary p {
+  margin-top: 5px;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.settings-alert {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.settings-alert.success {
+  border-color: var(--color-success-border);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.settings-alert.danger {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
 }
 
 .attendance-card {
@@ -2386,7 +2471,8 @@ tbody tr:hover td {
   .attendance-summary,
   .financial-grid,
   .salary-grid,
-  .salary-actions {
+  .salary-actions,
+  .settings-layout {
     grid-template-columns: 1fr;
   }
 
@@ -2394,6 +2480,10 @@ tbody tr:hover td {
   .salary-card-top {
     align-items: stretch;
     grid-template-columns: 1fr;
+  }
+
+  .settings-actions {
+    justify-content: stretch;
   }
 }
 
