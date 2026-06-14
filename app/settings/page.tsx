@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Building2, CheckCircle2, Mail, Save, Settings, UserRound } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+import { Building2, CheckCircle2, Mail, Save, Settings, Trash2, UserRound } from 'lucide-react';
 
 export default function SettingsPage() {
     const { user, updateProfile } = useApp();
+    const router = useRouter();
     const [formData, setFormData] = useState({
         name: user?.name || '',
         companyName: user?.companyName || ''
@@ -13,6 +16,12 @@ export default function SettingsPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteMessage, setDeleteMessage] = useState('');
+    const [deleteError, setDeleteError] = useState('');
 
     useEffect(() => {
         setFormData({
@@ -37,7 +46,56 @@ export default function SettingsPage() {
         }
     };
 
+    const handleDeleteAccount = async () => {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session?.access_token) {
+            throw new Error(sessionError?.message || 'You must be signed in to delete your account.');
+        }
+
+        const response = await fetch('/api/account/delete', {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${session.access_token}`
+            }
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok) {
+            throw new Error(result?.error || 'Failed to delete account.');
+        }
+
+        await supabase.auth.signOut();
+        router.push('/login');
+    };
+
+    const handleConfirmDelete = async () => {
+        setDeleteError('');
+        setDeleteMessage('');
+        setIsDeleting(true);
+
+        try {
+            await handleDeleteAccount();
+            setIsDeleteModalOpen(false);
+            setDeleteConfirmation('');
+        } catch (err) {
+            setDeleteError(err instanceof Error ? err.message : 'Failed to delete account.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleCloseDeleteModal = () => {
+        if (isDeleting) return;
+
+        setIsDeleteModalOpen(false);
+        setDeleteConfirmation('');
+        setDeleteError('');
+    };
+
     const hasChanges = formData.name !== (user?.name || '') || formData.companyName !== (user?.companyName || '');
+    const canDelete = deleteConfirmation === 'DELETE' && !isDeleting;
 
     return (
         <div className="shell">
@@ -50,96 +108,146 @@ export default function SettingsPage() {
             </header>
 
             <section className="settings-layout">
-                <form onSubmit={handleSubmit} className="panel settings-form">
-                    <div className="section-header mb-4">
-                        <div>
-                            <h2 className="text-xl font-bold">Edit profile</h2>
-                            <p className="page-subtitle">These details appear in the top bar and workspace records.</p>
+                <div className="settings-form">
+                    <form onSubmit={handleSubmit} className="panel settings-form">
+                        <div className="section-header mb-4">
+                            <div>
+                                <h2 className="text-xl font-bold">Edit profile</h2>
+                                <p className="page-subtitle">These details appear in the top bar and workspace records.</p>
+                            </div>
+                            <div className="soft-icon primary">
+                                <Settings size={20} />
+                            </div>
                         </div>
-                        <div className="soft-icon primary">
-                            <Settings size={20} />
-                        </div>
-                    </div>
 
-                    <div className="form-grid">
-                        <div className="form-field">
-                            <label className="label" htmlFor="name">Full Name</label>
-                            <div className="input-wrapper">
-                                <input
-                                    id="name"
-                                    type="text"
-                                    required
-                                    className="input"
-                                    value={formData.name}
-                                    onChange={(event) => setFormData(prev => ({ ...prev, name: event.target.value }))}
-                                    placeholder="Your name"
-                                />
-                                <span className="input-icon-btn" aria-hidden="true">
-                                    <UserRound size={17} />
-                                </span>
+                        <div className="form-grid">
+                            <div className="form-field">
+                                <label className="label" htmlFor="name">Full Name</label>
+                                <div className="input-wrapper">
+                                    <input
+                                        id="name"
+                                        type="text"
+                                        required
+                                        className="input"
+                                        value={formData.name}
+                                        onChange={(event) => setFormData(prev => ({ ...prev, name: event.target.value }))}
+                                        placeholder="Your name"
+                                    />
+                                    <span className="input-icon-btn" aria-hidden="true">
+                                        <UserRound size={17} />
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="form-field">
+                                <label className="label" htmlFor="companyName">Company Name</label>
+                                <div className="input-wrapper">
+                                    <input
+                                        id="companyName"
+                                        type="text"
+                                        required
+                                        className="input"
+                                        value={formData.companyName}
+                                        onChange={(event) => setFormData(prev => ({ ...prev, companyName: event.target.value }))}
+                                        placeholder="Company name"
+                                    />
+                                    <span className="input-icon-btn" aria-hidden="true">
+                                        <Building2 size={17} />
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
                         <div className="form-field">
-                            <label className="label" htmlFor="companyName">Company Name</label>
+                            <label className="label" htmlFor="email">Email Address</label>
                             <div className="input-wrapper">
                                 <input
-                                    id="companyName"
-                                    type="text"
-                                    required
+                                    id="email"
+                                    type="email"
                                     className="input"
-                                    value={formData.companyName}
-                                    onChange={(event) => setFormData(prev => ({ ...prev, companyName: event.target.value }))}
-                                    placeholder="Company name"
+                                    value={user?.email || ''}
+                                    readOnly
                                 />
                                 <span className="input-icon-btn" aria-hidden="true">
-                                    <Building2 size={17} />
+                                    <Mail size={17} />
                                 </span>
                             </div>
+                            <p className="helper-text">Email changes are managed through authentication.</p>
                         </div>
-                    </div>
 
-                    <div className="form-field">
-                        <label className="label" htmlFor="email">Email Address</label>
-                        <div className="input-wrapper">
-                            <input
-                                id="email"
-                                type="email"
-                                className="input"
-                                value={user?.email || ''}
-                                readOnly
-                            />
-                            <span className="input-icon-btn" aria-hidden="true">
-                                <Mail size={17} />
-                            </span>
+                        {message && (
+                            <div className="settings-alert success">
+                                <CheckCircle2 size={18} />
+                                <span>{message}</span>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="settings-alert danger">
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        <div className="toolbar settings-actions">
+                            <button
+                                type="submit"
+                                className="btn btn-primary"
+                                disabled={isSaving || !hasChanges}
+                            >
+                                <Save size={18} />
+                                {isSaving ? 'Saving' : 'Save Changes'}
+                            </button>
                         </div>
-                        <p className="helper-text">Email changes are managed through authentication.</p>
-                    </div>
+                    </form>
 
-                    {message && (
-                        <div className="settings-alert success">
-                            <CheckCircle2 size={18} />
-                            <span>{message}</span>
+                    <section
+                        className="panel settings-form"
+                        style={{
+                            borderColor: 'var(--color-danger-border)',
+                            background: 'var(--color-danger-bg)'
+                        }}
+                    >
+                        <div className="section-header mb-4">
+                            <div>
+                                <h2 className="text-xl font-bold text-danger">Delete Account</h2>
+                                <p className="page-subtitle">
+                                    Permanently delete your account and all associated data. This action cannot be undone.
+                                </p>
+                            </div>
+                            <div className="soft-icon danger">
+                                <Trash2 size={20} />
+                            </div>
                         </div>
-                    )}
 
-                    {error && (
-                        <div className="settings-alert danger">
-                            <span>{error}</span>
+                        {deleteMessage && (
+                            <div className="settings-alert success">
+                                <CheckCircle2 size={18} />
+                                <span>{deleteMessage}</span>
+                            </div>
+                        )}
+
+                        {deleteError && (
+                            <div className="settings-alert danger">
+                                <span>{deleteError}</span>
+                            </div>
+                        )}
+
+                        <div className="toolbar settings-actions">
+                            <button
+                                type="button"
+                                className="btn btn-danger"
+                                onClick={() => {
+                                    setDeleteError('');
+                                    setDeleteMessage('');
+                                    setIsDeleteModalOpen(true);
+                                }}
+                            >
+                                <Trash2 size={18} />
+                                Delete Account
+                            </button>
                         </div>
-                    )}
-
-                    <div className="toolbar settings-actions">
-                        <button
-                            type="submit"
-                            className="btn btn-primary"
-                            disabled={isSaving || !hasChanges}
-                        >
-                            <Save size={18} />
-                            {isSaving ? 'Saving' : 'Save Changes'}
-                        </button>
-                    </div>
-                </form>
+                    </section>
+                </div>
 
                 <aside className="panel settings-summary">
                     <div className="settings-avatar">
@@ -161,6 +269,73 @@ export default function SettingsPage() {
                     </div>
                 </aside>
             </section>
+
+            {isDeleteModalOpen && (
+                <div className="modal-backdrop">
+                    <div className="modal-card max-w-md">
+                        <div className="modal-header">
+                            <div>
+                                <h2 className="modal-title text-danger">Delete Account</h2>
+                                <p className="modal-subtitle">
+                                    Account deletion is permanent and cannot be undone.
+                                </p>
+                            </div>
+                            <div className="soft-icon danger">
+                                <Trash2 size={20} />
+                            </div>
+                        </div>
+
+                        <div className="list-stack">
+                            <div className="settings-alert danger">
+                                <span>
+                                    This will permanently delete your account and all associated data once backend deletion is connected.
+                                </span>
+                            </div>
+
+                            <div className="form-field">
+                                <label className="label" htmlFor="deleteConfirmation">
+                                    Type DELETE to confirm
+                                </label>
+                                <input
+                                    id="deleteConfirmation"
+                                    type="text"
+                                    className="input"
+                                    value={deleteConfirmation}
+                                    onChange={(event) => setDeleteConfirmation(event.target.value)}
+                                    placeholder="DELETE"
+                                    disabled={isDeleting}
+                                />
+                            </div>
+
+                            {deleteError && (
+                                <div className="settings-alert danger">
+                                    <span>{deleteError}</span>
+                                </div>
+                            )}
+
+                            <div className="toolbar settings-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline"
+                                    onClick={handleCloseDeleteModal}
+                                    disabled={isDeleting}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-danger"
+                                    onClick={handleConfirmDelete}
+                                    disabled={!canDelete}
+                                >
+                                    <Trash2 size={18} />
+                                    {isDeleting ? 'Deleting' : 'Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
