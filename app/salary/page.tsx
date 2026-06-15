@@ -5,20 +5,7 @@ import { useApp } from '@/lib/store';
 import { BadgeDollarSign, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileText, Pencil, Search, Timer, Trash2, Wallet, X } from 'lucide-react';
 import { getSriLankaDate } from '@/lib/dateUtils';
 import { Employee } from '@/lib/types';
-
-// Helper to get applicable rate for a specific date from history
-const getRateForDate = (baseRate: number, history: { rate: number; effectiveDate: string }[] | undefined, date: string) => {
-    if (!history || history.length === 0) return baseRate;
-
-    // Sort history by date descending (newest first)
-    const sorted = [...history].sort((a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime());
-
-    // Find first entry where effectiveDate <= date
-    const targetDate = new Date(date);
-    const applicableEntry = sorted.find(h => new Date(h.effectiveDate) <= targetDate);
-
-    return applicableEntry ? applicableEntry.rate : baseRate; // Fallback to base (current) rate if no history matches (should ideally fall back to oldest, but current is safer if history is incomplete)
-};
+import { calculateDailyEarnings, getApplicableDailyRate } from '@/lib/salary';
 
 export default function SalaryPage() {
     const { employees, attendance, payments, addPayment, updatePayment, deletePayment, sites } = useApp();
@@ -52,38 +39,16 @@ export default function SalaryPage() {
         empAttendance.forEach(record => {
             let recordEarned = 0;
 
-            // Determine Daily Rate for this specific record
-            const recordRole = record.role || employee.role;
-            let applicableRate = employee.dailyRate;
-            let rateHistory = employee.rateHistory;
+            const applicableRate = getApplicableDailyRate(employee, record.role, record.date);
 
-            if (recordRole !== employee.role) {
-                const roleData = employee.additionalRoles?.find((r) => r.role === recordRole);
-                if (roleData) {
-                    applicableRate = roleData.dailyRate;
-                    rateHistory = roleData.rateHistory;
-                }
-            }
-
-            // Apply historical rate check
-            applicableRate = getRateForDate(applicableRate, rateHistory, record.date);
-
-            // Precise Hourly Calculation (if available)
             if (record.workingHours !== undefined && record.workingHours !== null) {
-                const hourlyRate = applicableRate / 10;
-                recordEarned = hourlyRate * record.workingHours;
+                recordEarned = calculateDailyEarnings(applicableRate, record.workingHours, record.status);
                 totalHours += record.workingHours;
             }
-            // Fallback Legacy Calculation
             else {
-                if (record.status === 'present') {
-                    recordEarned = applicableRate;
-                    totalHours += 10;
-                }
-                if (record.status === 'half-day') {
-                    recordEarned = applicableRate / 2;
-                    totalHours += 5;
-                }
+                recordEarned = calculateDailyEarnings(applicableRate, undefined, record.status);
+                if (record.status === 'present') totalHours += 10.5;
+                if (record.status === 'half-day') totalHours += 5;
             }
             totalEarned += recordEarned;
         });
@@ -380,36 +345,18 @@ export default function SalaryPage() {
 
                                                     // Determine rate for this record
                                                     const recordRole = record.role || detailsEmployee.role;
-                                                    let applicableRate = detailsEmployee.dailyRate;
-                                                    let rateHistory = detailsEmployee.rateHistory;
-
-                                                    if (recordRole !== detailsEmployee.role) {
-                                                        const roleData = detailsEmployee.additionalRoles?.find((r) => r.role === recordRole);
-                                                        if (roleData) {
-                                                            applicableRate = roleData.dailyRate;
-                                                            rateHistory = roleData.rateHistory;
-                                                        }
-                                                    }
-
-                                                    // Apply historical rate check
-                                                    applicableRate = getRateForDate(applicableRate, rateHistory, record.date);
+                                                    const applicableRate = getApplicableDailyRate(detailsEmployee, record.role, record.date);
 
                                                     if (record.workingHours !== undefined) {
-                                                        const hourlyRate = applicableRate / 10;
-                                                        earned = hourlyRate * record.workingHours;
+                                                        earned = calculateDailyEarnings(applicableRate, record.workingHours, record.status);
                                                         displayTime = `${record.workingHours} Hrs`;
                                                         if (record.startTime && record.endTime) {
                                                             displayTime += ` (${record.startTime} - ${record.endTime})`;
                                                         }
                                                     } else {
-                                                        if (record.status === 'present') {
-                                                            earned = applicableRate;
-                                                            displayTime = 'Full Day (10h)';
-                                                        }
-                                                        if (record.status === 'half-day') {
-                                                            earned = applicableRate / 2;
-                                                            displayTime = 'Half Day (5h)';
-                                                        }
+                                                        earned = calculateDailyEarnings(applicableRate, undefined, record.status);
+                                                        if (record.status === 'present') displayTime = 'Full Day (10.5h)';
+                                                        if (record.status === 'half-day') displayTime = 'Half Day (5h)';
                                                     }
 
                                                     return (

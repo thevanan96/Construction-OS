@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Filter, FileText } from 'lucide-react';
+import { calculateDailyEarnings, getApplicableDailyRate } from '@/lib/salary';
 
 export default function ReportsPage() {
     const { employees, attendance, sites } = useApp();
@@ -25,16 +26,17 @@ export default function ReportsPage() {
 
             let hours = 0;
             let cost = 0;
+            const applicableRate = getApplicableDailyRate(emp, record.role, record.date);
 
             if (record.workingHours !== undefined) {
                 hours = record.workingHours;
-                cost = (emp.dailyRate / 10) * hours;
+                cost = calculateDailyEarnings(applicableRate, record.workingHours, record.status);
             } else if (record.status === 'present') {
-                hours = 10;
-                cost = emp.dailyRate;
+                hours = 10.5;
+                cost = calculateDailyEarnings(applicableRate, undefined, record.status);
             } else if (record.status === 'half-day') {
                 hours = 5;
-                cost = emp.dailyRate / 2;
+                cost = calculateDailyEarnings(applicableRate, undefined, record.status);
             }
 
             if (!employeeCosts[emp.id]) {

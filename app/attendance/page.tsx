@@ -6,15 +6,7 @@ import { useApp } from '@/lib/store';
 import { CalendarDays, ChevronLeft, ChevronRight, Check, Clock, Search, Timer, UserCheck, X } from 'lucide-react';
 import { AttendanceStatus } from '@/lib/types';
 import { getSriLankaDate } from '@/lib/dateUtils';
-
-// Helper to get applicable rate for a specific date from history (Same as SalaryPage)
-const getRateForDate = (baseRate: number, history: { rate: number; effectiveDate: string }[] | undefined, date: string) => {
-    if (!history || history.length === 0) return baseRate;
-    const sorted = [...history].sort((a, b) => new Date(b.effectiveDate).getTime() - new Date(a.effectiveDate).getTime());
-    const targetDate = new Date(date);
-    const applicableEntry = sorted.find(h => new Date(h.effectiveDate) <= targetDate);
-    return applicableEntry ? applicableEntry.rate : baseRate;
-};
+import { getApplicableDailyRate } from '@/lib/salary';
 
 export default function AttendancePage() {
     const { employees, attendance, markAttendance, sites } = useApp();
@@ -83,8 +75,8 @@ export default function AttendancePage() {
 
         if (status === 'present') {
             startTime = '08:00';
-            endTime = '18:00';
-            workingHours = 10;
+            endTime = '18:30';
+            workingHours = 10.5;
         } else if (status === 'half-day') {
             startTime = '08:00';
             endTime = '13:00';
@@ -121,7 +113,7 @@ export default function AttendancePage() {
 
         // Auto-determine status based on hours
         let status: AttendanceStatus = 'absent';
-        if (hours >= 10) status = 'present';
+        if (hours >= 10.5) status = 'present';
         else if (hours > 0) status = 'half-day';
 
         markAttendance({
@@ -253,20 +245,7 @@ export default function AttendancePage() {
                         // Determine role and rate
                         const currentRole = employeeRoles[emp.id] || (record?.role || emp.role);
 
-                        // 1. Get Base Rate and History for the Role
-                        let baseRate = emp.dailyRate;
-                        let rateHistory = emp.rateHistory;
-
-                        if (currentRole !== emp.role) {
-                            const roleData = emp.additionalRoles?.find(r => r.role === currentRole);
-                            if (roleData) {
-                                baseRate = roleData.dailyRate;
-                                rateHistory = roleData.rateHistory;
-                            }
-                        }
-
-                        // 2. Get Effective Rate for selected Date
-                        const effectiveRate = getRateForDate(baseRate, rateHistory, selectedDate);
+                        const effectiveRate = getApplicableDailyRate(emp, currentRole, selectedDate);
 
                         return (
                             <div key={emp.id} className="card attendance-card card-interactive">
@@ -340,19 +319,19 @@ export default function AttendancePage() {
                                     <button
                                         onClick={() => setStatus(emp.id, 'present')}
                                         className={`btn btn-attendance ${status === 'present' ? 'active-present' : ''}`}
-                                        title="10h Shift"
+                                        title="Full Day"
                                     >
                                         <Check size={14} />
-                                        <span>10h</span>
+                                        <span>Full Day</span>
                                     </button>
 
                                     <button
                                         onClick={() => setStatus(emp.id, 'half-day')}
                                         className={`btn btn-attendance ${status === 'half-day' ? 'active-halfday' : ''}`}
-                                        title="5h Shift"
+                                        title="Half Day"
                                     >
                                         <Clock size={14} />
-                                        <span>5h</span>
+                                        <span>Half Day</span>
                                     </button>
 
                                     <button
