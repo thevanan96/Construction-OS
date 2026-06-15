@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { ElementType } from 'react';
 import { useApp } from '@/lib/store';
 import { Banknote, Building, CalendarCheck, Clock, FileText, Plus, UserCheck, Users, Wallet } from 'lucide-react';
+import { calculateDailyEarnings, getApplicableDailyRate } from '@/lib/salary';
 
 function formatNumber(value: number) {
   return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -23,8 +24,8 @@ export default function DashboardPage() {
     const employee = employees.find((item) => item.id === record.employeeId);
     if (!employee) return acc;
 
-    const hourlyRate = employee.dailyRate / 10;
-    return acc + hourlyRate * (record.workingHours || 0);
+    const applicableRate = getApplicableDailyRate(employee, record.role, record.date);
+    return acc + calculateDailyEarnings(applicableRate, record.workingHours, record.status);
   }, 0);
 
   const totalPaid = payments.reduce((acc, curr) => acc + curr.amount, 0);
