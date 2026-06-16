@@ -23,6 +23,9 @@ interface AppContextType {
     updateEmployee: (id: string, data: Partial<Employee>) => Promise<void>;
     deleteEmployee: (id: string) => Promise<void>;
     markAttendance: (record: Omit<Attendance, 'id'>) => Promise<void>;
+    addAttendanceSegment: (record: Omit<Attendance, 'id'>) => Promise<void>;
+    updateAttendanceSegment: (id: string, data: Partial<Attendance>) => Promise<void>;
+    deleteAttendanceSegment: (id: string) => Promise<void>;
     addPayment: (payment: Omit<Payment, 'id'>) => Promise<void>;
     updatePayment: (id: string, data: Partial<Payment>) => Promise<void>;
     deletePayment: (id: string) => Promise<void>;
@@ -282,17 +285,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
 
+    const insertAttendanceSegment = async (record: Omit<Attendance, 'id'>) => {
+        if (!user) return null;
+
+        const { error } = await supabase.from('attendance').insert({
+            user_id: user.id,
+            employee_id: record.employeeId,
+            date: record.date,
+            status: record.status,
+            role: record.role,
+            site_id: record.site || null,
+            start_time: record.startTime || null,
+            end_time: record.endTime || null,
+            working_hours: record.workingHours
+        });
+
+        return error;
+    };
+
     const markAttendance = async (record: Omit<Attendance, 'id'>) => {
         if (!user) {
             alert('Error: You appear to be logged out.');
             return;
         }
 
-        // Optimistic Update: Update UI immediately
+        const previousAttendance = [...attendance];
+
+        // Replace every segment for this employee/date with one quick action record.
         setAttendance(prev => {
             const others = prev.filter(a => !(a.employeeId === record.employeeId && a.date === record.date));
             return [...others, {
-                id: 'temp-' + Math.random().toString(36).substr(2, 9), // Unique Temporary ID
+                id: 'temp-' + Math.random().toString(36).substr(2, 9),
                 employeeId: record.employeeId,
                 date: record.date,
                 status: record.status,
@@ -304,26 +327,100 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }];
         });
 
-        // Upsert based on employee_id and date
-        const { error } = await supabase.from('attendance').upsert({
-            user_id: user.id,
-            employee_id: record.employeeId,
-            date: record.date,
-            status: record.status,
-            role: record.role,
-            site_id: record.site || null,
-            start_time: record.startTime || null,
-            end_time: record.endTime,
-            working_hours: record.workingHours
-        }, { onConflict: 'employee_id,date' });
+        const { error: deleteError } = await supabase
+            .from('attendance')
+            .delete()
+            .eq('employee_id', record.employeeId)
+            .eq('date', record.date);
+
+        const insertError = deleteError ? null : await insertAttendanceSegment(record);
+        const error = deleteError || insertError;
 
         if (error) {
             console.error('Error marking attendance:', error);
             alert('Failed to mark attendance: ' + error.message);
-            // Revert state by fetching authentic data
-            fetchData();
+            setAttendance(previousAttendance);
         } else {
-            // Silently sync in background to confirm (optional, but good for consistency)
+            fetchData();
+        }
+    };
+
+    const addAttendanceSegment = async (record: Omit<Attendance, 'id'>) => {
+        if (!user) return;
+
+        const previousAttendance = [...attendance];
+
+        setAttendance(prev => [
+            ...prev.filter(a => !(a.employeeId === record.employeeId && a.date === record.date && a.status === 'absent')),
+            {
+                id: 'temp-' + Math.random().toString(36).substr(2, 9),
+                employeeId: record.employeeId,
+                date: record.date,
+                status: record.status,
+                role: record.role,
+                site: record.site,
+                startTime: record.startTime,
+                endTime: record.endTime,
+                workingHours: record.workingHours
+            }
+        ]);
+
+        await supabase
+            .from('attendance')
+            .delete()
+            .eq('employee_id', record.employeeId)
+            .eq('date', record.date)
+            .eq('status', 'absent');
+
+        const error = await insertAttendanceSegment(record);
+
+        if (error) {
+            console.error('Error adding attendance segment:', error);
+            alert('Failed to add attendance segment: ' + error.message);
+            setAttendance(previousAttendance);
+        } else {
+            fetchData();
+        }
+    };
+
+    const updateAttendanceSegment = async (id: string, data: Partial<Attendance>) => {
+        if (!user) return;
+
+        const previousAttendance = [...attendance];
+        setAttendance(prev => prev.map(record => record.id === id ? { ...record, ...data } : record));
+
+        const updates: Record<string, unknown> = {};
+        if (data.status) updates.status = data.status;
+        if (data.role !== undefined) updates.role = data.role;
+        if (data.site !== undefined) updates.site_id = data.site || null;
+        if (data.startTime !== undefined) updates.start_time = data.startTime || null;
+        if (data.endTime !== undefined) updates.end_time = data.endTime || null;
+        if (data.workingHours !== undefined) updates.working_hours = data.workingHours;
+
+        const { error } = await supabase.from('attendance').update(updates).eq('id', id);
+
+        if (error) {
+            console.error('Error updating attendance segment:', error);
+            alert('Failed to update attendance segment: ' + error.message);
+            setAttendance(previousAttendance);
+        } else {
+            fetchData();
+        }
+    };
+
+    const deleteAttendanceSegment = async (id: string) => {
+        if (!user) return;
+
+        const previousAttendance = [...attendance];
+        setAttendance(prev => prev.filter(record => record.id !== id));
+
+        const { error } = await supabase.from('attendance').delete().eq('id', id);
+
+        if (error) {
+            console.error('Error deleting attendance segment:', error);
+            alert('Failed to delete attendance segment: ' + error.message);
+            setAttendance(previousAttendance);
+        } else {
             fetchData();
         }
     };
@@ -497,7 +594,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return (
         <AppContext.Provider value={{
             employees, attendance, payments, sites, user, isLoading,
-            addEmployee, updateEmployee, deleteEmployee, markAttendance, addPayment, updatePayment, deletePayment, addSite, updateSite, removeSite,
+            addEmployee, updateEmployee, deleteEmployee, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, addPayment, updatePayment, deletePayment, addSite, updateSite, removeSite,
             updateProfile,
             logout
         }}>

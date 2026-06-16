@@ -3,13 +3,69 @@
 import { useState } from 'react';
 import type { ElementType } from 'react';
 import { useApp } from '@/lib/store';
-import { CalendarDays, ChevronLeft, ChevronRight, Check, Clock, Search, Timer, UserCheck, X } from 'lucide-react';
-import { AttendanceStatus } from '@/lib/types';
+import { CalendarDays, ChevronLeft, ChevronRight, Check, Clock, Plus, Search, Timer, Trash2, UserCheck, X } from 'lucide-react';
+import { Attendance, AttendanceStatus, Employee } from '@/lib/types';
 import { getSriLankaDate } from '@/lib/dateUtils';
-import { getApplicableDailyRate } from '@/lib/salary';
+import { getApplicableDailyRate, getAttendanceHours } from '@/lib/salary';
+
+const calculateHours = (start: string, end: string): number => {
+    if (!start || !end) return 0;
+    const startDate = new Date(`1970-01-01T${start}`);
+    const endDate = new Date(`1970-01-01T${end}`);
+    const diff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+    return diff > 0 ? parseFloat(diff.toFixed(2)) : 0;
+};
+
+const statusFromHours = (hours: number): AttendanceStatus => {
+    if (hours >= 10.5) return 'present';
+    if (hours > 0) return 'half-day';
+    return 'absent';
+};
+
+const getRoleOptions = (employee: Employee) => [
+    employee.role,
+    ...(employee.additionalRoles || []).map(role => role.role),
+];
+
+const getStatusMeta = (records: Attendance[], totalHours: number) => {
+    if (records.length === 0) {
+        return {
+            label: 'Not Marked',
+            className: 'attendance-status-badge',
+            cardClassName: 'attendance-card-not-marked'
+        };
+    }
+    if (records.every(record => record.status === 'absent')) {
+        return {
+            label: 'Absent',
+            className: 'attendance-status-badge attendance-status-absent',
+            cardClassName: 'attendance-card-absent'
+        };
+    }
+    if (totalHours >= 10.5) {
+        return {
+            label: 'Present',
+            className: 'attendance-status-badge attendance-status-present',
+            cardClassName: 'attendance-card-present'
+        };
+    }
+    if (totalHours > 0) {
+        return {
+            label: 'Half Day',
+            className: 'attendance-status-badge attendance-status-half-day',
+            cardClassName: 'attendance-card-half-day'
+        };
+    }
+
+    return {
+        label: 'Not Marked',
+        className: 'attendance-status-badge',
+        cardClassName: 'attendance-card-not-marked'
+    };
+};
 
 export default function AttendancePage() {
-    const { employees, attendance, markAttendance, sites } = useApp();
+    const { employees, attendance, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, sites } = useApp();
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [searchQuery, setSearchQuery] = useState('');
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
@@ -19,11 +75,18 @@ export default function AttendancePage() {
         emp.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
     const todaysRecords = attendance.filter(a => a.date === selectedDate);
-    const markedCount = todaysRecords.length;
-    const presentCount = todaysRecords.filter(a => a.status === 'present').length;
-    const halfDayCount = todaysRecords.filter(a => a.status === 'half-day').length;
-    const absentCount = todaysRecords.filter(a => a.status === 'absent').length;
-    const totalHours = todaysRecords.reduce((sum, record) => sum + (record.workingHours || 0), 0);
+    const markedEmployeeIds = new Set(todaysRecords.map(record => record.employeeId));
+    const markedCount = markedEmployeeIds.size;
+    const employeeDayStats = employees.map(employee => {
+        const records = todaysRecords.filter(record => record.employeeId === employee.id);
+        const hours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
+        const hasAbsentOnly = records.length > 0 && records.every(record => record.status === 'absent');
+        return { employeeId: employee.id, hours, hasAbsentOnly };
+    });
+    const presentCount = employeeDayStats.filter(item => item.hours >= 10.5).length;
+    const halfDayCount = employeeDayStats.filter(item => item.hours > 0 && item.hours < 10.5).length;
+    const absentCount = employeeDayStats.filter(item => item.hasAbsentOnly).length;
+    const totalHours = todaysRecords.reduce((sum, record) => sum + getAttendanceHours(record), 0);
     const completionPercent = employees.length ? Math.round((markedCount / employees.length) * 100) : 0;
 
     const handleDateChange = (days: number) => {
@@ -40,34 +103,23 @@ export default function AttendancePage() {
         setEmployeeRoles({});
     };
 
-    const getRecord = (employeeId: string) => {
-        return attendance.find(a => a.employeeId === employeeId && a.date === selectedDate);
+    const getRecords = (employeeId: string) => {
+        return attendance
+            .filter(a => a.employeeId === employeeId && a.date === selectedDate)
+            .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
     };
 
-    const getSite = (employeeId: string): string => {
-        const record = getRecord(employeeId);
-        if (record && record.site) return record.site;
+    const getSelectedSite = (employeeId: string): string => {
         return employeeSites[employeeId] || (sites.length > 0 ? sites[0].id : '');
     };
 
-    const getRole = (employeeId: string, defaultRole: string): string => {
-        const record = getRecord(employeeId);
-        if (record && record.role) return record.role;
-        return employeeRoles[employeeId] || defaultRole;
+    const getSelectedRole = (employee: Employee): string => {
+        return employeeRoles[employee.id] || employee.role;
     };
 
-    const calculateHours = (start: string, end: string): number => {
-        if (!start || !end) return 0;
-        const startDate = new Date(`1970-01-01T${start}`);
-        const endDate = new Date(`1970-01-01T${end}`);
-        const diff = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60);
-        return diff > 0 ? parseFloat(diff.toFixed(2)) : 0;
-    };
-
-    const setStatus = (employeeId: string, status: AttendanceStatus) => {
-        const currentSite = employeeSites[employeeId] || (sites.length > 0 ? sites[0].id : '');
-        const employee = employees.find(e => e.id === employeeId);
-        const currentRole = employeeRoles[employeeId] || employee?.role || '';
+    const setStatus = (employee: Employee, status: AttendanceStatus) => {
+        const currentSite = getSelectedSite(employee.id);
+        const currentRole = getSelectedRole(employee);
 
         let startTime = '';
         let endTime = '';
@@ -81,91 +133,59 @@ export default function AttendancePage() {
             startTime = '08:00';
             endTime = '13:00';
             workingHours = 5;
-        } else {
-            // Absent
-            startTime = '';
-            endTime = '';
-            workingHours = 0;
         }
 
         markAttendance({
-            employeeId,
+            employeeId: employee.id,
             date: selectedDate,
             status,
-            role: currentRole,
-            site: currentSite || undefined,
+            role: status === 'absent' ? undefined : currentRole,
+            site: status === 'absent' ? undefined : currentSite || undefined,
             startTime,
             endTime,
             workingHours
         });
     };
 
-    const handleTimeChange = (employeeId: string, field: 'startTime' | 'endTime', value: string) => {
-        const record = getRecord(employeeId);
-        const currentSite = getSite(employeeId);
-        const employee = employees.find(e => e.id === employeeId);
-        const currentRole = getRole(employeeId, employee?.role || '');
+    const addSegment = (employee: Employee) => {
+        const currentRole = getSelectedRole(employee);
+        const currentSite = getSelectedSite(employee.id);
 
-        const currentStart = field === 'startTime' ? value : (record?.startTime || '');
-        const currentEnd = field === 'endTime' ? value : (record?.endTime || '');
-
-        const hours = calculateHours(currentStart, currentEnd);
-
-        // Auto-determine status based on hours
-        let status: AttendanceStatus = 'absent';
-        if (hours >= 10.5) status = 'present';
-        else if (hours > 0) status = 'half-day';
-
-        markAttendance({
-            employeeId,
+        addAttendanceSegment({
+            employeeId: employee.id,
             date: selectedDate,
-            status,
+            status: 'half-day',
             role: currentRole,
             site: currentSite || undefined,
-            startTime: currentStart,
-            endTime: currentEnd,
-            workingHours: hours
+            startTime: '08:00',
+            endTime: '13:00',
+            workingHours: 5
         });
     };
 
-    const handleSiteChange = (employeeId: string, siteId: string) => {
-        setEmployeeSites(prev => ({ ...prev, [employeeId]: siteId }));
-        const record = getRecord(employeeId);
+    const updateSegmentTime = (record: Attendance, field: 'startTime' | 'endTime', value: string) => {
+        const startTime = field === 'startTime' ? value : (record.startTime || '');
+        const endTime = field === 'endTime' ? value : (record.endTime || '');
+        const workingHours = calculateHours(startTime, endTime);
 
-        if (record) {
-            markAttendance({
-                employeeId,
-                date: selectedDate,
-                status: record.status,
-                site: siteId || undefined,
-                startTime: record.startTime,
-                endTime: record.endTime,
-                workingHours: record.workingHours
-            });
-        }
+        updateAttendanceSegment(record.id, {
+            startTime,
+            endTime,
+            workingHours,
+            status: statusFromHours(workingHours)
+        });
     };
 
-    const handleRoleChange = (employeeId: string, role: string) => {
-        setEmployeeRoles(prev => ({ ...prev, [employeeId]: role }));
+    const updateSegmentRole = (record: Attendance, role: string) => {
+        updateAttendanceSegment(record.id, { role });
+    };
 
-        // If record exists, update it immediately
-        const record = getRecord(employeeId);
-        if (record) {
-            markAttendance({
-                employeeId,
-                date: selectedDate,
-                status: record.status,
-                role: role,
-                site: record.site,
-                startTime: record.startTime,
-                endTime: record.endTime,
-                workingHours: record.workingHours
-            });
-        }
+    const updateSegmentSite = (record: Attendance, site: string) => {
+        updateAttendanceSegment(record.id, { site: site || undefined });
     };
 
     return (
-        <div className="shell">
+        <div className="shell attendance-page">
             <div className="page-header flex-col md:flex-row gap-4 items-start md:items-end">
                 <div>
                     <div className="page-kicker">Daily log</div>
@@ -224,101 +244,75 @@ export default function AttendancePage() {
                 <AttendanceStat label="Hours" value={totalHours.toFixed(1)} icon={Timer} tone="info" />
             </div>
 
-            <div className="dashboard-grid">
+            <div className="attendance-grid">
                 {filteredEmployees.length === 0 ? (
                     <div className="empty-state col-span-full">
                         <div>
                             <Search size={44} className="mx-auto" />
-                                            <h3>{searchQuery ? 'No matching employees' : 'No employees yet'}</h3>
-                                            <p>{searchQuery ? 'Try a different name.' : 'Add employees before marking attendance.'}</p>
+                            <h3>{searchQuery ? 'No matching employees' : 'No employees yet'}</h3>
+                            <p>{searchQuery ? 'Try a different name.' : 'Add employees before marking attendance.'}</p>
                         </div>
                     </div>
                 ) : (
                     filteredEmployees.map(emp => {
-                        const record = getRecord(emp.id);
-                        const status = record?.status;
-                        const currentSiteId = getSite(emp.id);
-                        const startTime = record?.startTime || '';
-                        const endTime = record?.endTime || '';
-                        const workingHours = record?.workingHours || 0;
-
-                        // Determine role and rate
-                        const currentRole = employeeRoles[emp.id] || (record?.role || emp.role);
-
-                        const effectiveRate = getApplicableDailyRate(emp, currentRole, selectedDate);
+                        const records = getRecords(emp.id);
+                        const workRecords = records.filter(record => record.status !== 'absent');
+                        const totalEmployeeHours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
+                        const selectedRole = getSelectedRole(emp);
+                        const selectedSite = getSelectedSite(emp.id);
+                        const effectiveRate = getApplicableDailyRate(emp, selectedRole, selectedDate);
+                        const roleOptions = getRoleOptions(emp);
+                        const statusMeta = getStatusMeta(records, totalEmployeeHours);
+                        const isAbsentOnly = records.length > 0 && records.every(record => record.status === 'absent');
 
                         return (
-                            <div key={emp.id} className="card attendance-card card-interactive">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="font-bold text-[var(--color-dark)] truncate">{emp.name}</h3>
-                                            {workingHours > 0 && (
-                                                <span className="badge">
-                                                    {workingHours}h
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-gray-500 flex flex-wrap items-center gap-2 mt-1">
-                                            {emp.additionalRoles && emp.additionalRoles.length > 0 ? (
-                                                <select
-                                                    value={currentRole}
-                                                    onChange={(e) => handleRoleChange(emp.id, e.target.value)}
-                                                    className="input"
-                                                    style={{ minHeight: 28, padding: '0 28px 0 8px', fontSize: '0.78rem' }}
-                                                >
-                                                    <option value={emp.role}>{emp.role}</option>
-                                                    {emp.additionalRoles.map(r => (
-                                                        <option key={r.role} value={r.role}>{r.role}</option>
-                                                    ))}
-                                                </select>
-                                            ) : (
-                                                <span className="badge">{emp.role}</span>
-                                            )}
-                                            <span className="font-mono text-blue-600 font-bold">Rate {effectiveRate}</span>
+                            <div key={emp.id} className={`card attendance-card card-interactive ${statusMeta.cardClassName}`}>
+                                <div className="attendance-card-header">
+                                    <div className="min-w-0">
+                                        <h3>{emp.name}</h3>
+                                        <div className="attendance-card-meta">
+                                            <span>{emp.role}</span>
+                                            <span className="attendance-rate-muted">Rate {effectiveRate}</span>
                                         </div>
                                     </div>
-                                </div>
-
-                                <div>
-                                    <div className="attendance-field-label">Assigned Site</div>
-                                    <select
-                                        className="input"
-                                        value={currentSiteId}
-                                        onChange={(e) => handleSiteChange(emp.id, e.target.value)}
-                                    >
-                                        <option value="">No Site</option>
-                                        {sites.map(s => (
-                                            <option key={s.id} value={s.id}>{s.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="relative">
-                                        <div className="attendance-field-label">Start</div>
-                                        <input
-                                            type="time"
-                                            className="input text-center"
-                                            value={startTime}
-                                            onChange={(e) => handleTimeChange(emp.id, 'startTime', e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="relative">
-                                        <div className="attendance-field-label">End</div>
-                                        <input
-                                            type="time"
-                                            className="input text-center"
-                                            value={endTime}
-                                            onChange={(e) => handleTimeChange(emp.id, 'endTime', e.target.value)}
-                                        />
+                                    <div className="attendance-card-badges">
+                                        <span className="badge">{totalEmployeeHours.toFixed(1)}h</span>
+                                        <span className={statusMeta.className}>{statusMeta.label}</span>
                                     </div>
                                 </div>
 
-                                <div className="attendance-actions">
+                                <div className="attendance-card-controls">
+                                    <label>
+                                        <span>Role</span>
+                                        <select
+                                            value={selectedRole}
+                                            onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                            className="input"
+                                        >
+                                            {roleOptions.map(role => (
+                                                <option key={role} value={role}>{role}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>Site</span>
+                                        <select
+                                            className="input"
+                                            value={selectedSite}
+                                            onChange={(e) => setEmployeeSites(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                        >
+                                            <option value="">No Site</option>
+                                            {sites.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <div className="attendance-quick-actions">
                                     <button
-                                        onClick={() => setStatus(emp.id, 'present')}
-                                        className={`btn btn-attendance ${status === 'present' ? 'active-present' : ''}`}
+                                        onClick={() => setStatus(emp, 'present')}
+                                        className={`btn btn-attendance ${totalEmployeeHours >= 10.5 ? 'active-present' : ''}`}
                                         title="Full Day"
                                     >
                                         <Check size={14} />
@@ -326,8 +320,8 @@ export default function AttendancePage() {
                                     </button>
 
                                     <button
-                                        onClick={() => setStatus(emp.id, 'half-day')}
-                                        className={`btn btn-attendance ${status === 'half-day' ? 'active-halfday' : ''}`}
+                                        onClick={() => setStatus(emp, 'half-day')}
+                                        className={`btn btn-attendance ${totalEmployeeHours > 0 && totalEmployeeHours < 10.5 ? 'active-halfday' : ''}`}
                                         title="Half Day"
                                     >
                                         <Clock size={14} />
@@ -335,14 +329,89 @@ export default function AttendancePage() {
                                     </button>
 
                                     <button
-                                        onClick={() => setStatus(emp.id, 'absent')}
-                                        className={`btn btn-attendance ${status === 'absent' ? 'active-absent' : ''}`}
+                                        onClick={() => setStatus(emp, 'absent')}
+                                        className={`btn btn-attendance ${isAbsentOnly ? 'active-absent' : ''}`}
                                         title="Reset"
                                     >
                                         <X size={14} />
                                         <span>Reset</span>
                                     </button>
                                 </div>
+
+                                {workRecords.length > 0 && (
+                                    <div className="attendance-segments-clean">
+                                        <div className="attendance-segments-title">
+                                            <span>Work Segments</span>
+                                            <strong>{workRecords.length}</strong>
+                                        </div>
+                                        {workRecords.map(record => {
+                                            const recordRole = record.role || emp.role;
+                                            const recordRate = getApplicableDailyRate(emp, recordRole, record.date);
+                                            return (
+                                                <div key={record.id} className="attendance-segment-clean">
+                                                    <div className="attendance-segment-grid">
+                                                        <select
+                                                            className="input"
+                                                            value={recordRole}
+                                                            onChange={(e) => updateSegmentRole(record, e.target.value)}
+                                                            aria-label={`${emp.name} segment role`}
+                                                        >
+                                                            {roleOptions.map(role => (
+                                                                <option key={role} value={role}>{role}</option>
+                                                            ))}
+                                                        </select>
+                                                        <select
+                                                            className="input"
+                                                            value={record.site || ''}
+                                                            onChange={(e) => updateSegmentSite(record, e.target.value)}
+                                                            aria-label={`${emp.name} segment site`}
+                                                        >
+                                                            <option value="">No Site</option>
+                                                            {sites.map(s => (
+                                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <div className="attendance-segment-grid attendance-segment-time-grid">
+                                                        <input
+                                                            type="time"
+                                                            className="input text-center"
+                                                            value={record.startTime || ''}
+                                                            onChange={(e) => updateSegmentTime(record, 'startTime', e.target.value)}
+                                                            aria-label={`${emp.name} segment start time`}
+                                                        />
+                                                        <input
+                                                            type="time"
+                                                            className="input text-center"
+                                                            value={record.endTime || ''}
+                                                            onChange={(e) => updateSegmentTime(record, 'endTime', e.target.value)}
+                                                            aria-label={`${emp.name} segment end time`}
+                                                        />
+                                                        <span className="segment-hours">{getAttendanceHours(record).toFixed(1)}h</span>
+                                                        <button
+                                                            className="icon-button attendance-delete-segment"
+                                                            type="button"
+                                                            title="Delete segment"
+                                                            onClick={() => deleteAttendanceSegment(record.id)}
+                                                        >
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    </div>
+                                                    <div className="attendance-rate-muted">Segment rate {recordRate}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <button
+                                    className="btn btn-outline attendance-add-segment"
+                                    type="button"
+                                    onClick={() => addSegment(emp)}
+                                >
+                                    <Plus size={16} />
+                                    Add Segment
+                                </button>
                             </div>
                         );
                     })
@@ -353,7 +422,7 @@ export default function AttendancePage() {
 }
 
 function AttendanceStat({ label, value, icon: Icon, tone }: {
-    label: string;
+    label: string | number;
     value: string | number;
     icon: ElementType;
     tone: 'success' | 'warning' | 'danger' | 'info';

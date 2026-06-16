@@ -5,7 +5,7 @@ import { useApp } from '@/lib/store';
 import { BadgeDollarSign, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileText, Pencil, Search, Timer, Trash2, Wallet, X } from 'lucide-react';
 import { getSriLankaDate } from '@/lib/dateUtils';
 import { Employee } from '@/lib/types';
-import { calculateDailyEarnings, getApplicableDailyRate } from '@/lib/salary';
+import { calculateAttendanceRecordsEarnings, calculateAttendanceSegmentCosts, getAttendanceHours } from '@/lib/salary';
 
 export default function SalaryPage() {
     const { employees, attendance, payments, addPayment, updatePayment, deletePayment, sites } = useApp();
@@ -36,22 +36,8 @@ export default function SalaryPage() {
         let totalEarned = 0;
         let totalHours = 0;
 
-        empAttendance.forEach(record => {
-            let recordEarned = 0;
-
-            const applicableRate = getApplicableDailyRate(employee, record.role, record.date);
-
-            if (record.workingHours !== undefined && record.workingHours !== null) {
-                recordEarned = calculateDailyEarnings(applicableRate, record.workingHours, record.status);
-                totalHours += record.workingHours;
-            }
-            else {
-                recordEarned = calculateDailyEarnings(applicableRate, undefined, record.status);
-                if (record.status === 'present') totalHours += 10.5;
-                if (record.status === 'half-day') totalHours += 5;
-            }
-            totalEarned += recordEarned;
-        });
+        totalEarned = calculateAttendanceRecordsEarnings(employee, empAttendance);
+        totalHours = empAttendance.reduce((sum, record) => sum + getAttendanceHours(record), 0);
 
         // 2. Calculate Paid
         const empPayments = payments.filter(p => p.employeeId === employee.id);
@@ -62,7 +48,7 @@ export default function SalaryPage() {
             totalPaid,
             balance: totalEarned - totalPaid,
             totalHours,
-            daysPresent: empAttendance.filter(a => a.status === 'present' || (a.workingHours && a.workingHours >= 10)).length,
+            daysPresent: new Set(empAttendance.filter(a => getAttendanceHours(a) > 0).map(a => a.date)).size,
         };
     };
 
@@ -336,25 +322,19 @@ export default function SalaryPage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {attendance
-                                                .filter(a => a.employeeId === detailsEmployee.id)
-                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                                                .map(record => {
-                                                    let earned = 0;
+                                            {calculateAttendanceSegmentCosts(detailsEmployee, attendance.filter(a => a.employeeId === detailsEmployee.id))
+                                                .sort((a, b) => new Date(b.record.date).getTime() - new Date(a.record.date).getTime())
+                                                .map(({ record, cost }) => {
                                                     let displayTime = '';
 
-                                                    // Determine rate for this record
                                                     const recordRole = record.role || detailsEmployee.role;
-                                                    const applicableRate = getApplicableDailyRate(detailsEmployee, record.role, record.date);
 
                                                     if (record.workingHours !== undefined) {
-                                                        earned = calculateDailyEarnings(applicableRate, record.workingHours, record.status);
                                                         displayTime = `${record.workingHours} Hrs`;
                                                         if (record.startTime && record.endTime) {
                                                             displayTime += ` (${record.startTime} - ${record.endTime})`;
                                                         }
                                                     } else {
-                                                        earned = calculateDailyEarnings(applicableRate, undefined, record.status);
                                                         if (record.status === 'present') displayTime = 'Full Day (10.5h)';
                                                         if (record.status === 'half-day') displayTime = 'Half Day (5h)';
                                                     }
@@ -371,7 +351,7 @@ export default function SalaryPage() {
                                                             <td className="text-sm font-medium">
                                                                 {displayTime || record.status}
                                                             </td>
-                                                            <td className="text-right font-mono">{earned.toFixed(0)}</td>
+                                                            <td className="text-right font-mono">{cost.toFixed(0)}</td>
                                                         </tr>
                                                     )
                                                 })}
