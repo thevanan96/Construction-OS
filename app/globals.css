@@ -1802,6 +1802,94 @@ tbody tr:hover td {
   color: #0f172a !important;
 }
 
+.attendance-advance-form {
+  display: grid;
+  gap: 8px;
+}
+
+.attendance-advance-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.attendance-advance-form label,
+.attendance-advance-entry label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.attendance-advance-form label > span,
+.attendance-advance-entry label > span {
+  color: #64748b;
+  font-size: 0.67rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.attendance-advance-button {
+  min-width: 86px;
+  border-color: rgba(5, 150, 105, 0.28) !important;
+  background: rgba(5, 150, 105, 0.08) !important;
+  color: #047857 !important;
+}
+
+.attendance-advance-button:hover {
+  border-color: rgba(5, 150, 105, 0.42) !important;
+  background: rgba(5, 150, 105, 0.14) !important;
+  color: #064e3b !important;
+}
+
+.attendance-advance-paid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid rgba(5, 150, 105, 0.22);
+  border-radius: var(--radius-md);
+  background: rgba(5, 150, 105, 0.08);
+  color: #047857;
+  padding: 7px 10px;
+}
+
+.attendance-advance-paid-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.attendance-advance-paid-copy span {
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.attendance-advance-paid-copy strong {
+  color: #064e3b;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.attendance-advance-delete {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
+  color: #047857;
+}
+
+.attendance-advance-delete:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
 .attendance-delete-segment {
   min-width: 36px;
   min-height: 36px;
@@ -1829,13 +1917,40 @@ tbody tr:hover td {
   }
 
   .attendance-card-controls,
-  .attendance-segment-grid {
+  .attendance-segment-grid,
+  .attendance-advance-entry {
     grid-template-columns: 1fr;
   }
 
   .attendance-segment-time-grid {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto 36px;
   }
+}
+
+.payment-type-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: 999px;
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral);
+  padding: 0 9px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.payment-type-advance {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.payment-type-bonus {
+  border-color: var(--color-success-border);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .auth-page {
@@ -3535,4 +3650,487 @@ tbody tr:hover td {
 .modal-backdrop,
 .fixed.inset-0.bg-black\/50 {
   background: rgba(15, 23, 42, 0.62) !important;
+}
+
+/* Mobile responsiveness final layer. Keep this after the design layer. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+.shell,
+.container,
+.main-content-horizontal,
+.auth-topbar,
+.auth-hero,
+.landing-feature-grid,
+.features-hero,
+.features-grid-expanded,
+.about-contact-shell,
+.marketing-hero,
+.marketing-section,
+.about-footer {
+  min-width: 0;
+}
+
+.card,
+.panel,
+.workbench-panel,
+.modal-card,
+.site-card,
+.salary-card,
+.attendance-card,
+.settings-form,
+.settings-summary {
+  min-width: 0;
+}
+
+.page-title,
+.workbench-title,
+.modal-title,
+.employee-cell h3,
+.site-card h3,
+.salary-card h3,
+.detail-row strong,
+.financial-tile strong,
+.connect-item strong {
+  overflow-wrap: anywhere;
+}
+
+.table-container {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.table-container table {
+  min-width: 720px;
+}
+
+.salary-card .table-container table,
+.modal-card .table-container table,
+.bg-white.rounded-lg.border.overflow-hidden table {
+  min-width: 640px;
+}
+
+.reports-page .table-container table {
+  min-width: 760px;
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    height: 64px;
+    padding: 0 16px;
+  }
+
+  .navbar-left {
+    gap: 12px;
+  }
+
+  .navbar-brand img {
+    height: 34px;
+    max-width: 150px;
+  }
+
+  .main-content-horizontal {
+    padding: 88px 18px 34px;
+  }
+
+  .shell,
+  .container {
+    width: 100%;
+  }
+
+  .mobile-menu-dropdown {
+    right: 10px;
+    left: 10px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+  }
+
+  .page-header,
+  .section-header,
+  .workbench-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .toolbar,
+  .settings-actions,
+  .site-card-actions,
+  .hero-actions,
+  .about-actions {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .toolbar > *,
+  .toolbar .btn,
+  .settings-actions .btn,
+  .site-card-actions .btn,
+  .hero-actions .btn,
+  .about-actions .btn,
+  .search-box,
+  .date-control,
+  .site-filter-tabs {
+    width: 100%;
+  }
+
+  .site-filter-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .site-filter-tab {
+    width: 100%;
+  }
+
+  .metric-grid,
+  .dashboard-grid,
+  .content-grid,
+  .page-grid,
+  .insight-strip,
+  .attendance-summary,
+  .attendance-grid,
+  .salary-grid,
+  .settings-layout,
+  .features-grid-expanded,
+  .marketing-card-grid,
+  .construction-image-grid,
+  .marketing-split,
+  .pricing-panel,
+  .about-strip,
+  .about-contact-shell,
+  .marketing-hero,
+  .features-hero,
+  .auth-hero,
+  .landing-feature-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .auth-hero,
+  .marketing-hero,
+  .features-hero,
+  .about-contact-shell {
+    gap: 28px;
+    padding-top: 28px;
+  }
+
+  .site-hero-visual,
+  .workflow-visual-stack,
+  .landing-connect-card {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .modal-backdrop,
+  .fixed.inset-0.bg-black\/50 {
+    align-items: flex-end !important;
+    padding: 10px !important;
+  }
+
+  .modal-card,
+  .modal-card.max-w-sm,
+  .modal-card.max-w-md,
+  .modal-card.max-w-2xl {
+    width: 100% !important;
+    max-width: none !important;
+    max-height: calc(100dvh - 20px);
+    border-radius: 12px 12px 10px 10px;
+    padding: 18px;
+  }
+
+  .modal-header {
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 0.92rem;
+  }
+
+  .main-content-horizontal {
+    padding: 82px 14px 28px;
+  }
+
+  .page-title {
+    font-size: clamp(1.35rem, 7vw, 1.75rem);
+    line-height: 1.16;
+  }
+
+  .page-subtitle,
+  .section-subtitle {
+    font-size: 0.86rem;
+  }
+
+  .card,
+  .panel,
+  .page-card,
+  .card-elevated,
+  .workbench-panel,
+  .workbench-body,
+  .attendance-focus,
+  .salary-card,
+  .settings-form,
+  .settings-summary,
+  .pricing-panel,
+  .about-strip,
+  .features-dashboard-preview,
+  .auth-form-container,
+  .connect-card {
+    padding: 16px;
+  }
+
+  .workbench-header {
+    padding: 14px 16px;
+  }
+
+  .metric-card {
+    min-height: 112px;
+    padding: 16px;
+  }
+
+  .metric-value {
+    font-size: 1.65rem;
+  }
+
+  .metric-icon,
+  .soft-icon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .insight-card,
+  .site-summary-chip {
+    min-height: 76px;
+    padding: 13px;
+  }
+
+  .site-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employee-cell {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .avatar-sm {
+    width: 34px;
+    height: 34px;
+  }
+
+  .form-grid,
+  .financial-grid,
+  .salary-actions,
+  .attendance-card-controls,
+  .attendance-segment-grid,
+  .attendance-quick-actions {
+    grid-template-columns: 1fr !important;
+  }
+
+  .attendance-segment-time-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 52px 36px !important;
+  }
+
+  .attendance-card-header,
+  .salary-card-top,
+  .workbench-header {
+    display: grid;
+    grid-template-columns: 1fr !important;
+  }
+
+  .attendance-card-title-row,
+  .attendance-card-badges,
+  .pill-row {
+    min-width: 0;
+  }
+
+  .attendance-card-badges,
+  .pill-row {
+    justify-content: flex-start;
+  }
+
+  .rate-chip,
+  .badge,
+  .status-badge,
+  .role-pill {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .input,
+  .select,
+  textarea.input,
+  .btn,
+  .search-box,
+  .date-control {
+    min-height: 44px;
+  }
+
+  .btn-sm {
+    min-height: 38px;
+  }
+
+  .modal-card {
+    padding: 16px;
+  }
+
+  .modal-header {
+    margin-bottom: 14px;
+  }
+
+  .modal-title {
+    font-size: 1.08rem;
+  }
+
+  .fixed.inset-0.bg-black\/50 .flex.justify-end,
+  .modal-card .flex.justify-end,
+  .modal-card .toolbar {
+    justify-content: stretch;
+  }
+
+  .modal-card .flex.justify-end > .btn,
+  .modal-card .toolbar > .btn {
+    flex: 1 1 0;
+  }
+
+  .auth-landing {
+    padding: 12px 12px 28px;
+  }
+
+  .auth-topbar {
+    position: relative;
+    top: 0;
+    align-items: stretch;
+    border-radius: 10px;
+  }
+
+  .auth-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .auth-nav a {
+    text-align: center;
+  }
+
+  .auth-nav-cta {
+    justify-content: center;
+  }
+
+  .auth-hero-copy h1,
+  .marketing-copy h1,
+  .features-intro h1 {
+    font-size: clamp(2rem, 12vw, 3rem);
+  }
+
+  .auth-stats,
+  .preview-metrics {
+    grid-template-columns: 1fr !important;
+  }
+
+  .site-hero-visual {
+    height: 230px;
+  }
+
+  .connect-item {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .connect-item > svg,
+  .connect-item > :last-child:not(:only-child) {
+    display: none;
+  }
+
+  .about-footer,
+  .about-footer nav {
+    width: 100%;
+  }
+
+  .about-footer nav {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0 12px;
+  }
+
+  .navbar-brand img {
+    height: 30px;
+    max-width: 128px;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .icon-button,
+  .btn-logout,
+  .btn-icon {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+  }
+
+  .main-content-horizontal {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .card,
+  .panel,
+  .page-card,
+  .workbench-panel,
+  .modal-card,
+  .attendance-card,
+  .salary-card {
+    border-radius: 8px;
+  }
+
+  .site-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .site-filter-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .attendance-segment-time-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .attendance-segment-time-grid .attendance-delete-segment {
+    grid-column: 2;
+    justify-self: end;
+  }
+
+  .financial-tile {
+    padding: 9px;
+  }
+
+  .table-container table {
+    min-width: 680px;
+  }
+
+  .modal-card .table-container table {
+    min-width: 600px;
+  }
 }
