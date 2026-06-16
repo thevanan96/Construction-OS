@@ -75,6 +75,7 @@ export default function AttendancePage() {
         emp.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
     const todaysRecords = attendance.filter(a => a.date === selectedDate);
+    const activeSites = sites.filter(site => (site.status || 'active') === 'active');
     const markedEmployeeIds = new Set(todaysRecords.map(record => record.employeeId));
     const markedCount = markedEmployeeIds.size;
     const employeeDayStats = employees.map(employee => {
@@ -110,7 +111,17 @@ export default function AttendancePage() {
     };
 
     const getSelectedSite = (employeeId: string): string => {
-        return employeeSites[employeeId] || (sites.length > 0 ? sites[0].id : '');
+        return employeeSites[employeeId] || (activeSites.length > 0 ? activeSites[0].id : '');
+    };
+
+    const getSiteOptions = (currentSiteId?: string) => {
+        const currentSite = currentSiteId ? sites.find(site => site.id === currentSiteId) : undefined;
+
+        if (currentSite && !activeSites.some(site => site.id === currentSite.id)) {
+            return [...activeSites, currentSite];
+        }
+
+        return activeSites;
     };
 
     const getSelectedRole = (employee: Employee): string => {
@@ -302,7 +313,7 @@ export default function AttendancePage() {
                                             onChange={(e) => setEmployeeSites(prev => ({ ...prev, [emp.id]: e.target.value }))}
                                         >
                                             <option value="">No Site</option>
-                                            {sites.map(s => (
+                                            {activeSites.map(s => (
                                                 <option key={s.id} value={s.id}>{s.name}</option>
                                             ))}
                                         </select>
@@ -367,7 +378,7 @@ export default function AttendancePage() {
                                                             aria-label={`${emp.name} segment site`}
                                                         >
                                                             <option value="">No Site</option>
-                                                            {sites.map(s => (
+                                                            {getSiteOptions(record.site).map(s => (
                                                                 <option key={s.id} value={s.id}>{s.name}</option>
                                                             ))}
                                                         </select>

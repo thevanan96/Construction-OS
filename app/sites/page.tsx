@@ -2,17 +2,48 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Plus, MapPin, Trash2, Building, Edit } from 'lucide-react';
+import { Plus, MapPin, Building, Edit, PauseCircle, CheckCircle2, RotateCcw, PlayCircle } from 'lucide-react';
 import { Site } from '@/lib/types';
 
+type SiteStatus = NonNullable<Site['status']>;
+type SiteFilter = SiteStatus | 'all';
+
+const STATUS_META: Record<SiteStatus, { label: string; badgeClass: string; cardClass: string }> = {
+    active: {
+        label: 'Active Project',
+        badgeClass: 'badge-active',
+        cardClass: 'site-card-active'
+    },
+    'on-hold': {
+        label: 'On Hold',
+        badgeClass: 'badge-warning',
+        cardClass: 'site-card-on-hold'
+    },
+    completed: {
+        label: 'Completed',
+        badgeClass: 'badge-inactive',
+        cardClass: 'site-card-completed'
+    }
+};
+
+const getSiteStatus = (site: Site): SiteStatus => site.status || 'active';
+
 export default function SitesPage() {
-    const { sites, addSite, updateSite, removeSite } = useApp();
+    const { sites, addSite, updateSite } = useApp();
     const [isAdding, setIsAdding] = useState(false);
     const [editingSite, setEditingSite] = useState<Site | null>(null);
+    const [selectedFilter, setSelectedFilter] = useState<SiteFilter>('active');
     const [formData, setFormData] = useState({
         name: '',
         location: '',
     });
+
+    const activeCount = sites.filter(site => getSiteStatus(site) === 'active').length;
+    const onHoldCount = sites.filter(site => getSiteStatus(site) === 'on-hold').length;
+    const completedCount = sites.filter(site => getSiteStatus(site) === 'completed').length;
+    const visibleSites = selectedFilter === 'all'
+        ? sites
+        : sites.filter(site => getSiteStatus(site) === selectedFilter);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,7 +57,7 @@ export default function SitesPage() {
             addSite({
                 name: formData.name,
                 location: formData.location,
-                active: true,
+                status: 'active',
             });
         }
 
@@ -42,6 +73,18 @@ export default function SitesPage() {
             location: site.location
         });
         setIsAdding(true);
+    };
+
+    const updateSiteStatus = (site: Site, status: SiteStatus) => {
+        const message = status === 'completed'
+            ? 'Mark this site as completed? It will be hidden from new attendance selections but kept for old records.'
+            : status === 'on-hold'
+                ? 'Put this site on hold? It will be hidden from default active site selections.'
+                : 'Move this site back to active projects?';
+
+        if (!window.confirm(message)) return;
+
+        updateSite(site.id, { status });
     };
 
     return (
@@ -62,6 +105,52 @@ export default function SitesPage() {
                 >
                     <Plus size={18} />
                     Add Site
+                </button>
+            </div>
+
+            <div className="site-summary">
+                <SummaryChip label="Active" value={activeCount} tone="active" />
+                <SummaryChip label="On Hold" value={onHoldCount} tone="hold" />
+                <SummaryChip label="Completed" value={completedCount} tone="completed" />
+                <SummaryChip label="Total" value={sites.length} tone="total" />
+            </div>
+
+            <div className="site-filter-tabs" role="tablist" aria-label="Filter sites by status">
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedFilter === 'active'}
+                    className={`site-filter-tab ${selectedFilter === 'active' ? 'active' : ''}`}
+                    onClick={() => setSelectedFilter('active')}
+                >
+                    Active
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedFilter === 'on-hold'}
+                    className={`site-filter-tab ${selectedFilter === 'on-hold' ? 'active' : ''}`}
+                    onClick={() => setSelectedFilter('on-hold')}
+                >
+                    On Hold
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedFilter === 'completed'}
+                    className={`site-filter-tab ${selectedFilter === 'completed' ? 'active' : ''}`}
+                    onClick={() => setSelectedFilter('completed')}
+                >
+                    Completed
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedFilter === 'all'}
+                    className={`site-filter-tab ${selectedFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setSelectedFilter('all')}
+                >
+                    All
                 </button>
             </div>
 
@@ -129,12 +218,24 @@ export default function SitesPage() {
                             <p>Add a site before assigning daily attendance.</p>
                         </div>
                     </div>
+                ) : visibleSites.length === 0 ? (
+                    <div className="empty-state col-span-full">
+                        <div>
+                            <Building size={44} className="mx-auto" />
+                            <h3>No {selectedFilter === 'all' ? '' : selectedFilter.replace('-', ' ')} sites</h3>
+                            <p>Switch filters to review other project records.</p>
+                        </div>
+                    </div>
                 ) : (
-                    sites.map(site => (
-                        <div key={site.id} className="card card-interactive">
+                    visibleSites.map(site => {
+                        const status = getSiteStatus(site);
+                        const meta = STATUS_META[status];
+
+                        return (
+                        <div key={site.id} className={`card card-interactive site-card ${meta.cardClass}`}>
                             <div className="flex justify-between items-start mb-4">
                                 <div className="min-w-0">
-                                    <div className="soft-icon primary mb-3">
+                                    <div className={`soft-icon mb-3 ${status === 'active' ? 'primary' : status === 'completed' ? 'info' : 'warning'}`}>
                                         <Building size={20} />
                                     </div>
                                     <h3 className="font-bold text-lg text-[var(--color-dark)]">{site.name}</h3>
@@ -152,26 +253,81 @@ export default function SitesPage() {
                                     >
                                         <Edit size={16} />
                                     </button>
-                                    <button
-                                        onClick={() => removeSite(site.id)}
-                                        className="btn btn-danger btn-icon"
-                                        title="Delete"
-                                        type="button"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
                                 </div>
                             </div>
 
                             <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
-                                <span className={`badge ${site.active ? 'badge-active' : 'badge-inactive'}`}>
-                                    {site.active ? 'Active Project' : 'Completed'}
+                                <span className={`badge ${meta.badgeClass}`}>
+                                    {meta.label}
                                 </span>
                             </div>
+
+                            <div className="site-card-actions">
+                                {status === 'active' && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => updateSiteStatus(site, 'on-hold')}
+                                        >
+                                            <PauseCircle size={15} />
+                                            Mark On Hold
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => updateSiteStatus(site, 'completed')}
+                                        >
+                                            <CheckCircle2 size={15} />
+                                            Mark Completed
+                                        </button>
+                                    </>
+                                )}
+                                {status === 'on-hold' && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => updateSiteStatus(site, 'active')}
+                                        >
+                                            <PlayCircle size={15} />
+                                            Resume
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => updateSiteStatus(site, 'completed')}
+                                        >
+                                            <CheckCircle2 size={15} />
+                                            Mark Completed
+                                        </button>
+                                    </>
+                                )}
+                                {status === 'completed' && (
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline btn-sm"
+                                        onClick={() => updateSiteStatus(site, 'active')}
+                                    >
+                                        <RotateCcw size={15} />
+                                        Reopen
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                    ))
+                    );
+                    })
                 )}
             </div>
+        </div>
+    );
+}
+
+function SummaryChip({ label, value, tone }: { label: string; value: number; tone: 'active' | 'hold' | 'completed' | 'total' }) {
+    return (
+        <div className={`site-summary-chip site-summary-${tone}`}>
+            <span>{label}</span>
+            <strong>{value}</strong>
         </div>
     );
 }

@@ -33,7 +33,7 @@ export interface Site {
     id: string;
     name: string;
     location: string;
-    active: boolean;
+    status?: 'active' | 'completed' | 'on-hold';
 }
 
 export interface Payment {

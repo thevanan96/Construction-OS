@@ -84,7 +84,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 id: s.id,
                 name: s.name,
                 location: s.location,
-                active: s.status === 'active'
+                status: s.status || 'active'
             })));
         }
 
@@ -492,14 +492,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             id: 'temp-' + Date.now(),
             name: data.name,
             location: data.location,
-            active: data.active ?? true
+            status: data.status || 'active'
         }, ...prev]);
 
         const { error } = await supabase.from('sites').insert({
             user_id: user.id,
             name: data.name,
             location: data.location,
-            status: data.active ? 'active' : 'on-hold'
+            status: data.status || 'active'
         });
 
         if (!error) fetchData();
@@ -517,7 +517,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const updates: Record<string, unknown> = {};
         if (data.name) updates.name = data.name;
         if (data.location) updates.location = data.location;
-        if (data.active !== undefined) updates.status = data.active ? 'active' : 'on-hold';
+        if (data.status) updates.status = data.status;
 
         const { error } = await supabase.from('sites').update(updates).eq('id', id);
 

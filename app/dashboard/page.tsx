@@ -34,7 +34,7 @@ export default function DashboardPage() {
 
   const totalPaid = payments.reduce((acc, curr) => acc + curr.amount, 0);
   const balanceDue = Math.max(0, totalEarnings - totalPaid);
-  const activeSites = sites.filter((site) => site.active).length;
+  const activeSites = sites.filter((site) => (site.status || 'active') === 'active').length;
   const activeEmployees = employees.filter((employee) => employee.active).length;
 
   return (
