@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Filter, FileText } from 'lucide-react';
-import { calculateDailyEarnings, getApplicableDailyRate } from '@/lib/salary';
+import { calculateAttendanceSegmentCosts } from '@/lib/salary';
 
 export default function ReportsPage() {
     const { employees, attendance, sites } = useApp();
@@ -17,34 +17,24 @@ export default function ReportsPage() {
         let totalCost = 0;
         const employeeCosts: Record<string, { name: string, hours: number, cost: number }> = {};
 
-        attendance.forEach(record => {
-            if (record.date < reportStart || record.date > reportEnd) return;
-            if (reportSite && record.site !== reportSite) return;
+        employees.forEach(emp => {
+            const records = attendance.filter(record =>
+                record.employeeId === emp.id &&
+                record.date >= reportStart &&
+                record.date <= reportEnd
+            );
+            const segmentCosts = calculateAttendanceSegmentCosts(emp, records).filter(({ record }) =>
+                !reportSite || record.site === reportSite
+            );
 
-            const emp = employees.find(e => e.id === record.employeeId);
-            if (!emp) return;
-
-            let hours = 0;
-            let cost = 0;
-            const applicableRate = getApplicableDailyRate(emp, record.role, record.date);
-
-            if (record.workingHours !== undefined) {
-                hours = record.workingHours;
-                cost = calculateDailyEarnings(applicableRate, record.workingHours, record.status);
-            } else if (record.status === 'present') {
-                hours = 10.5;
-                cost = calculateDailyEarnings(applicableRate, undefined, record.status);
-            } else if (record.status === 'half-day') {
-                hours = 5;
-                cost = calculateDailyEarnings(applicableRate, undefined, record.status);
-            }
-
-            if (!employeeCosts[emp.id]) {
-                employeeCosts[emp.id] = { name: emp.name, hours: 0, cost: 0 };
-            }
-            employeeCosts[emp.id].hours += hours;
-            employeeCosts[emp.id].cost += cost;
-            totalCost += cost;
+            segmentCosts.forEach(({ hours, cost }) => {
+                if (!employeeCosts[emp.id]) {
+                    employeeCosts[emp.id] = { name: emp.name, hours: 0, cost: 0 };
+                }
+                employeeCosts[emp.id].hours += hours;
+                employeeCosts[emp.id].cost += cost;
+                totalCost += cost;
+            });
         });
 
         return { totalCost, employeeCosts };

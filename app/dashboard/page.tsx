@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { ElementType } from 'react';
 import { useApp } from '@/lib/store';
 import { Banknote, Building, CalendarCheck, Clock, FileText, Plus, UserCheck, Users, Wallet } from 'lucide-react';
-import { calculateDailyEarnings, getApplicableDailyRate } from '@/lib/salary';
+import { calculateAttendanceRecordsEarnings, getAttendanceHours } from '@/lib/salary';
 
 function formatNumber(value: number) {
   return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -15,17 +15,21 @@ export default function DashboardPage() {
 
   const today = new Date().toISOString().split('T')[0];
   const todaysAttendance = attendance.filter((record) => record.date === today);
-  const presentToday = todaysAttendance.filter((record) => record.status === 'present').length;
-  const halfDayToday = todaysAttendance.filter((record) => record.status === 'half-day').length;
-  const absentToday = todaysAttendance.filter((record) => record.status === 'absent').length;
-  const totalHoursToday = todaysAttendance.reduce((sum, record) => sum + (record.workingHours || 0), 0);
+  const employeeDayStats = employees.map((employee) => {
+    const records = todaysAttendance.filter((record) => record.employeeId === employee.id);
+    const hours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
+    const hasAbsentOnly = records.length > 0 && records.every((record) => record.status === 'absent');
+    return { hours, hasAbsentOnly };
+  });
+  const presentToday = employeeDayStats.filter((item) => item.hours >= 10.5).length;
+  const halfDayToday = employeeDayStats.filter((item) => item.hours > 0 && item.hours < 10.5).length;
+  const absentToday = employeeDayStats.filter((item) => item.hasAbsentOnly).length;
+  const totalHoursToday = todaysAttendance.reduce((sum, record) => sum + getAttendanceHours(record), 0);
+  const markedToday = new Set(todaysAttendance.map((record) => record.employeeId)).size;
 
-  const totalEarnings = attendance.reduce((acc, record) => {
-    const employee = employees.find((item) => item.id === record.employeeId);
-    if (!employee) return acc;
-
-    const applicableRate = getApplicableDailyRate(employee, record.role, record.date);
-    return acc + calculateDailyEarnings(applicableRate, record.workingHours, record.status);
+  const totalEarnings = employees.reduce((acc, employee) => {
+    const records = attendance.filter((record) => record.employeeId === employee.id);
+    return acc + calculateAttendanceRecordsEarnings(employee, records);
   }, 0);
 
   const totalPaid = payments.reduce((acc, curr) => acc + curr.amount, 0);
@@ -98,7 +102,7 @@ export default function DashboardPage() {
           <div className="list-stack">
             <div className="detail-row">
               <span>Employees marked</span>
-              <strong>{todaysAttendance.length} / {employees.length}</strong>
+              <strong>{markedToday} / {employees.length}</strong>
             </div>
             <div className="detail-row">
               <span>Total hours logged</span>
