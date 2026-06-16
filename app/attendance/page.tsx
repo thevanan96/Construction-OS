@@ -71,15 +71,18 @@ export default function AttendancePage() {
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
     const [employeeRoles, setEmployeeRoles] = useState<Record<string, string>>({});
 
-    const filteredEmployees = employees.filter(emp =>
+    const activeEmployees = employees.filter(emp => emp.active);
+    const filteredEmployees = activeEmployees.filter(emp =>
         emp.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
     const todaysRecords = attendance.filter(a => a.date === selectedDate);
+    const activeEmployeeIds = new Set(activeEmployees.map(employee => employee.id));
+    const activeTodaysRecords = todaysRecords.filter(record => activeEmployeeIds.has(record.employeeId));
     const activeSites = sites.filter(site => (site.status || 'active') === 'active');
-    const markedEmployeeIds = new Set(todaysRecords.map(record => record.employeeId));
+    const markedEmployeeIds = new Set(activeTodaysRecords.map(record => record.employeeId));
     const markedCount = markedEmployeeIds.size;
-    const employeeDayStats = employees.map(employee => {
-        const records = todaysRecords.filter(record => record.employeeId === employee.id);
+    const employeeDayStats = activeEmployees.map(employee => {
+        const records = activeTodaysRecords.filter(record => record.employeeId === employee.id);
         const hours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
         const hasAbsentOnly = records.length > 0 && records.every(record => record.status === 'absent');
         return { employeeId: employee.id, hours, hasAbsentOnly };
@@ -87,8 +90,8 @@ export default function AttendancePage() {
     const presentCount = employeeDayStats.filter(item => item.hours >= 10.5).length;
     const halfDayCount = employeeDayStats.filter(item => item.hours > 0 && item.hours < 10.5).length;
     const absentCount = employeeDayStats.filter(item => item.hasAbsentOnly).length;
-    const totalHours = todaysRecords.reduce((sum, record) => sum + getAttendanceHours(record), 0);
-    const completionPercent = employees.length ? Math.round((markedCount / employees.length) * 100) : 0;
+    const totalHours = activeTodaysRecords.reduce((sum, record) => sum + getAttendanceHours(record), 0);
+    const completionPercent = activeEmployees.length ? Math.round((markedCount / activeEmployees.length) * 100) : 0;
 
     const handleDateChange = (days: number) => {
         const date = new Date(selectedDate);
@@ -239,7 +242,7 @@ export default function AttendancePage() {
                         <div>
                             <div className="page-kicker">Completion</div>
                             <h2 className="text-xl font-bold">{completionPercent}% marked</h2>
-                            <p className="page-subtitle">{markedCount} of {employees.length} employees recorded for {selectedDate}</p>
+                            <p className="page-subtitle">{markedCount} of {activeEmployees.length} active employees recorded for {selectedDate}</p>
                         </div>
                         <div className="soft-icon">
                             <CalendarDays size={20} />
@@ -260,8 +263,8 @@ export default function AttendancePage() {
                     <div className="empty-state col-span-full">
                         <div>
                             <Search size={44} className="mx-auto" />
-                            <h3>{searchQuery ? 'No matching employees' : 'No employees yet'}</h3>
-                            <p>{searchQuery ? 'Try a different name.' : 'Add employees before marking attendance.'}</p>
+                            <h3>{searchQuery ? 'No matching active employees' : 'No active employees'}</h3>
+                            <p>{searchQuery ? 'Try a different name.' : 'Reactivate or add employees before marking attendance.'}</p>
                         </div>
                     </div>
                 ) : (

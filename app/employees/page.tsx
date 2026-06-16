@@ -2,14 +2,17 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { BadgeCheck, BriefcaseBusiness, Edit, Phone, Plus, Search, Trash2, TrendingUp, User, Users, X } from 'lucide-react';
+import { BadgeCheck, BriefcaseBusiness, Edit, Phone, Plus, RotateCcw, Search, Trash2, TrendingUp, User, UserX, Users, X } from 'lucide-react';
 import { Employee } from '@/lib/types';
+
+type EmployeeFilter = 'active' | 'inactive' | 'all';
 
 export default function EmployeesPage() {
     const { employees, addEmployee, updateEmployee, deleteEmployee } = useApp();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [selectedFilter, setSelectedFilter] = useState<EmployeeFilter>('active');
 
     // Increment Modal State
     const [showIncrementModal, setShowIncrementModal] = useState(false);
@@ -65,12 +68,6 @@ export default function EmployeesPage() {
             nic: emp.nic || ''
         });
         setIsModalOpen(true);
-    };
-
-    const handleDelete = async (id: string, name: string) => {
-        if (confirm(`Are you sure you want to delete ${name}?\n\nThis will PERMANENTLY delete all their history (Attendance, Salary, Payments). This action cannot be undone.`)) {
-            await deleteEmployee(id);
-        }
     };
 
     const handleAddRole = () => {
@@ -219,16 +216,41 @@ export default function EmployeesPage() {
         setShowIncrementModal(false);
     };
 
-    const filteredEmployees = employees.filter(emp =>
+    const handleDeactivate = async (employeeId: string) => {
+        if (!confirm('Deactivate this employee?\n\nThey will no longer appear in attendance and active workforce lists, but all historical attendance, salary, and payment records will be preserved.')) {
+            return;
+        }
+
+        await updateEmployee(employeeId, { active: false });
+    };
+
+    const handleReactivate = async (employeeId: string) => {
+        await updateEmployee(employeeId, { active: true });
+    };
+
+    const handleDeleteInactive = async (employee: Employee) => {
+        if (employee.active) return;
+
+        if (!confirm(`Permanently delete ${employee.name}?\n\nThis employee is inactive, but deleting will permanently remove their employee record and related history. This action cannot be undone.`)) {
+            return;
+        }
+
+        await deleteEmployee(employee.id);
+    };
+
+    const employeesByStatus = employees.filter(emp => {
+        if (selectedFilter === 'active') return emp.active;
+        if (selectedFilter === 'inactive') return !emp.active;
+        return true;
+    });
+    const filteredEmployees = employeesByStatus.filter(emp =>
         emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (emp.nic && emp.nic.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     const activeEmployees = employees.filter(emp => emp.active).length;
+    const inactiveEmployees = employees.length - activeEmployees;
     const totalRoles = employees.reduce((count, emp) => count + 1 + (emp.additionalRoles?.length || 0), 0);
-    const averageRate = employees.length
-        ? Math.round(employees.reduce((sum, emp) => sum + emp.dailyRate, 0) / employees.length)
-        : 0;
 
     return (
         <div className="shell">
@@ -259,11 +281,20 @@ export default function EmployeesPage() {
                 </div>
                 <div className="insight-card">
                     <div>
-                        <span>Active Workforce</span>
+                        <span>Active Employees</span>
                         <strong>{activeEmployees}</strong>
                     </div>
                     <div className="soft-icon">
                         <BadgeCheck size={20} />
+                    </div>
+                </div>
+                <div className="insight-card">
+                    <div>
+                        <span>Inactive Employees</span>
+                        <strong>{inactiveEmployees}</strong>
+                    </div>
+                    <div className="soft-icon warning">
+                        <UserX size={20} />
                     </div>
                 </div>
                 <div className="insight-card">
@@ -275,15 +306,36 @@ export default function EmployeesPage() {
                         <BriefcaseBusiness size={20} />
                     </div>
                 </div>
-                <div className="insight-card">
-                    <div>
-                        <span>Average Daily Rate</span>
-                        <strong>{averageRate}</strong>
-                    </div>
-                    <div className="soft-icon primary">
-                        <TrendingUp size={20} />
-                    </div>
-                </div>
+            </div>
+
+            <div className="site-filter-tabs" role="tablist" aria-label="Filter employees by status">
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedFilter === 'active'}
+                    className={`site-filter-tab ${selectedFilter === 'active' ? 'active' : ''}`}
+                    onClick={() => setSelectedFilter('active')}
+                >
+                    Active Employees
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedFilter === 'inactive'}
+                    className={`site-filter-tab ${selectedFilter === 'inactive' ? 'active' : ''}`}
+                    onClick={() => setSelectedFilter('inactive')}
+                >
+                    Inactive Employees
+                </button>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={selectedFilter === 'all'}
+                    className={`site-filter-tab ${selectedFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setSelectedFilter('all')}
+                >
+                    All Employees
+                </button>
             </div>
 
             {isModalOpen && (
@@ -524,7 +576,7 @@ export default function EmployeesPage() {
                     <div>
                         <h2 className="workbench-title">Workforce Directory</h2>
                         <p className="workbench-meta">
-                            Showing {filteredEmployees.length} of {employees.length} employees
+                            Showing {filteredEmployees.length} of {employeesByStatus.length} employees
                         </p>
                     </div>
                     <div className="search-box" style={{ minWidth: 320 }}>
@@ -545,7 +597,7 @@ export default function EmployeesPage() {
                         <div>
                             <User size={44} className="mx-auto" />
                             <h3>No employees found</h3>
-                            <p>Add your first worker or adjust the search term.</p>
+                            <p>{searchTerm ? 'Adjust the search term.' : 'Switch filters or add a new worker.'}</p>
                         </div>
                         </div>
                     ) : (
@@ -558,12 +610,12 @@ export default function EmployeesPage() {
                                         <th>Contact</th>
                                         <th>Daily Rate</th>
                                         <th>Status</th>
-                                        <th style={{ textAlign: 'center', width: '140px' }}>Actions</th>
+                                        <th style={{ textAlign: 'center', width: '260px' }}>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredEmployees.map(emp => (
-                                        <tr key={emp.id}>
+                                        <tr key={emp.id} className={!emp.active ? 'employee-row-inactive' : ''}>
                                             <td>
                                                 <div className="employee-cell">
                                                     <div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>
@@ -613,13 +665,38 @@ export default function EmployeesPage() {
                                                     >
                                                         <Edit size={16} />
                                                     </button>
-                                                    <button
-                                                        onClick={() => handleDelete(emp.id, emp.name)}
-                                                        className="btn btn-danger btn-icon"
-                                                        title="Delete employee"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                    {emp.active ? (
+                                                        <button
+                                                            onClick={() => handleDeactivate(emp.id)}
+                                                            className="btn btn-danger-subtle btn-sm"
+                                                            title="Deactivate employee"
+                                                            type="button"
+                                                        >
+                                                            <UserX size={15} />
+                                                            Deactivate
+                                                        </button>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleReactivate(emp.id)}
+                                                                className="btn btn-outline btn-sm"
+                                                                title="Reactivate employee"
+                                                                type="button"
+                                                            >
+                                                                <RotateCcw size={15} />
+                                                                Reactivate
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteInactive(emp)}
+                                                                className="btn btn-danger-subtle btn-sm"
+                                                                title="Delete inactive employee"
+                                                                type="button"
+                                                            >
+                                                                <Trash2 size={15} />
+                                                                Delete
+                                                            </button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
