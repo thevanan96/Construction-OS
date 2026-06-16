@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import type { ElementType } from 'react';
+import type { ElementType, FormEvent } from 'react';
 import { useApp } from '@/lib/store';
-import { CalendarDays, ChevronLeft, ChevronRight, Check, Clock, Plus, Search, Timer, Trash2, UserCheck, X } from 'lucide-react';
+import { BadgeDollarSign, CalendarDays, ChevronLeft, ChevronRight, Check, Clock, Plus, Search, Timer, Trash2, UserCheck, X } from 'lucide-react';
 import { Attendance, AttendanceStatus, Employee } from '@/lib/types';
 import { getSriLankaDate } from '@/lib/dateUtils';
 import { getApplicableDailyRate, getAttendanceHours } from '@/lib/salary';
@@ -65,11 +65,12 @@ const getStatusMeta = (records: Attendance[], totalHours: number) => {
 };
 
 export default function AttendancePage() {
-    const { employees, attendance, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, sites } = useApp();
+    const { employees, attendance, payments, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, addPayment, deletePayment, sites } = useApp();
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [searchQuery, setSearchQuery] = useState('');
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
     const [employeeRoles, setEmployeeRoles] = useState<Record<string, string>>({});
+    const [advanceAmounts, setAdvanceAmounts] = useState<Record<string, string>>({});
 
     const activeEmployees = employees.filter(emp => emp.active);
     const filteredEmployees = activeEmployees.filter(emp =>
@@ -99,18 +100,20 @@ export default function AttendancePage() {
         setSelectedDate(date.toISOString().split('T')[0]);
         setEmployeeSites({});
         setEmployeeRoles({});
+        setAdvanceAmounts({});
     };
 
     const handleSelectedDateChange = (date: string) => {
         setSelectedDate(date);
         setEmployeeSites({});
         setEmployeeRoles({});
+        setAdvanceAmounts({});
     };
 
     const getRecords = (employeeId: string) => {
         return attendance
             .filter(a => a.employeeId === employeeId && a.date === selectedDate)
-            .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+            .sort((a, b) => (a.createdAt || a.id).localeCompare(b.createdAt || b.id));
     };
 
     const getSelectedSite = (employeeId: string): string => {
@@ -198,6 +201,35 @@ export default function AttendancePage() {
         updateAttendanceSegment(record.id, { site: site || undefined });
     };
 
+    const recordAdvancePayment = async (event: FormEvent, employee: Employee) => {
+        event.preventDefault();
+
+        const amount = Number(advanceAmounts[employee.id]);
+        if (!amount || amount <= 0) return;
+
+        await addPayment({
+            employeeId: employee.id,
+            amount,
+            date: selectedDate,
+            type: 'advance',
+            notes: 'Advance Payment'
+        });
+
+        setAdvanceAmounts(prev => ({ ...prev, [employee.id]: '' }));
+    };
+
+    const deleteAdvancePayments = async (employee: Employee, paymentIds: string[]) => {
+        if (paymentIds.length === 0) return;
+
+        const message = paymentIds.length > 1
+            ? `Delete all advance payments for ${employee.name} on ${selectedDate}?`
+            : `Delete advance payment for ${employee.name} on ${selectedDate}?`;
+
+        if (!confirm(message)) return;
+
+        await Promise.all(paymentIds.map(paymentId => deletePayment(paymentId)));
+    };
+
     return (
         <div className="shell attendance-page">
             <div className="page-header flex-col md:flex-row gap-4 items-start md:items-end">
@@ -278,6 +310,10 @@ export default function AttendancePage() {
                         const roleOptions = getRoleOptions(emp);
                         const statusMeta = getStatusMeta(records, totalEmployeeHours);
                         const isAbsentOnly = records.length > 0 && records.every(record => record.status === 'absent');
+                        const paidAdvancePayments = payments.filter(payment =>
+                            payment.employeeId === emp.id && payment.date === selectedDate && payment.type === 'advance'
+                        );
+                        const paidAdvance = paidAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
 
                         return (
                             <div key={emp.id} className={`card attendance-card card-interactive ${statusMeta.cardClassName}`}>
@@ -426,6 +462,43 @@ export default function AttendancePage() {
                                     <Plus size={16} />
                                     Add Segment
                                 </button>
+
+                                <form className="attendance-advance-form" onSubmit={(event) => recordAdvancePayment(event, emp)}>
+                                    <div className="attendance-advance-entry">
+                                        <label>
+                                            <span>Advance</span>
+                                            <input
+                                                type="number"
+                                                className="input"
+                                                placeholder="0.00"
+                                                value={advanceAmounts[emp.id] || ''}
+                                                onChange={(e) => setAdvanceAmounts(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                min="1"
+                                                step="1"
+                                            />
+                                        </label>
+                                        <button className="btn btn-outline attendance-advance-button" type="submit">
+                                            <BadgeDollarSign size={16} />
+                                            Paid
+                                        </button>
+                                    </div>
+                                    {paidAdvance > 0 && (
+                                        <div className="attendance-advance-paid">
+                                            <div className="attendance-advance-paid-copy">
+                                                <span>Paid advance</span>
+                                                <strong>{paidAdvance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                                            </div>
+                                            <button
+                                                className="icon-button attendance-advance-delete"
+                                                type="button"
+                                                title="Delete advance payment"
+                                                onClick={() => deleteAdvancePayments(emp, paidAdvancePayments.map(payment => payment.id))}
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </form>
                             </div>
                         );
                     })

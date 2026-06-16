@@ -7,6 +7,12 @@ import { getSriLankaDate } from '@/lib/dateUtils';
 import { Employee } from '@/lib/types';
 import { calculateAttendanceRecordsEarnings, calculateAttendanceSegmentCosts, getAttendanceHours } from '@/lib/salary';
 
+const formatPaymentType = (type?: string) => {
+    if (type === 'advance') return 'Advance';
+    if (type === 'bonus') return 'Bonus';
+    return 'Salary';
+};
+
 export default function SalaryPage() {
     const { employees, attendance, payments, addPayment, updatePayment, deletePayment, sites } = useApp();
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -60,6 +66,7 @@ export default function SalaryPage() {
             employeeId: selectedEmployee,
             amount: Number(payAmount),
             date: selectedDate, // Use selected date for payment
+            type: 'salary',
             notes: 'Manual Payment'
         });
 
@@ -169,6 +176,7 @@ export default function SalaryPage() {
                                     <thead className="bg-blue-50/50 text-blue-900">
                                         <tr>
                                             <th className="p-3">Employee</th>
+                                            <th className="p-3">Type</th>
                                             <th className="p-3">Notes</th>
                                             <th className="p-3 text-right">Amount</th>
                                         </tr>
@@ -179,6 +187,9 @@ export default function SalaryPage() {
                                             return (
                                                 <tr key={p.id} className="border-t border-blue-50">
                                                     <td className="p-3 font-medium">{emp?.name || 'Unknown'}</td>
+                                                    <td className="p-3">
+                                                        <span className={`payment-type-badge payment-type-${p.type || 'salary'}`}>{formatPaymentType(p.type)}</span>
+                                                    </td>
                                                     <td className="p-3 text-gray-500">{p.notes}</td>
                                                     <td className="p-3 text-right font-mono font-bold">{p.amount}</td>
                                                 </tr>
@@ -367,6 +378,7 @@ export default function SalaryPage() {
                                         <thead>
                                             <tr>
                                                 <th>Date</th>
+                                                <th>Type</th>
                                                 <th>Notes</th>
                                                 <th className="text-right">Amount</th>
                                                 <th className="text-right">Actions</th>
@@ -379,6 +391,9 @@ export default function SalaryPage() {
                                                 .map(payment => (
                                                     <tr key={payment.id} className="group hover:bg-gray-50">
                                                         <td className="font-mono text-sm">{payment.date.split('T')[0]}</td>
+                                                        <td>
+                                                            <span className={`payment-type-badge payment-type-${payment.type || 'salary'}`}>{formatPaymentType(payment.type)}</span>
+                                                        </td>
                                                         <td className="text-sm text-[var(--color-text-muted)]">{payment.notes || '-'}</td>
                                                         <td className="text-right font-mono font-bold text-[var(--color-success)]">{payment.amount}</td>
                                                         <td className="text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -93,6 +93,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 id: a.id,
                 employeeId: a.employee_id,
                 date: a.date,
+                createdAt: a.created_at,
                 status: a.status,
                 role: a.role,
                 site: a.site_id,
@@ -108,6 +109,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 employeeId: p.employee_id,
                 amount: p.amount,
                 date: p.date,
+                type: p.type || 'salary',
                 notes: p.notes || ''
             })));
         }
@@ -318,6 +320,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 id: 'temp-' + Math.random().toString(36).substr(2, 9),
                 employeeId: record.employeeId,
                 date: record.date,
+                createdAt: new Date().toISOString(),
                 status: record.status,
                 role: record.role,
                 site: record.site,
@@ -356,6 +359,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 id: 'temp-' + Math.random().toString(36).substr(2, 9),
                 employeeId: record.employeeId,
                 date: record.date,
+                createdAt: new Date().toISOString(),
                 status: record.status,
                 role: record.role,
                 site: record.site,
@@ -434,6 +438,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             employeeId: data.employeeId,
             amount: data.amount,
             date: data.date,
+            type: data.type || 'salary',
             notes: data.notes || ''
         }, ...prev]);
 
@@ -442,7 +447,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             employee_id: data.employeeId,
             amount: data.amount,
             date: data.date,
-            type: 'salary', // Default for now
+            type: data.type || 'salary',
             notes: data.notes
         });
 
@@ -459,6 +464,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const updates: Record<string, unknown> = {};
         if (data.amount !== undefined) updates.amount = data.amount;
         if (data.date) updates.date = data.date;
+        if (data.type) updates.type = data.type;
         if (data.notes !== undefined) updates.notes = data.notes;
 
         const { error } = await supabase.from('payments').update(updates).eq('id', id);

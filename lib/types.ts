@@ -21,6 +21,7 @@ export interface Attendance {
     id: string;
     employeeId: string;
     date: string; // ISO YYYY-MM-DD
+    createdAt?: string;
     status: AttendanceStatus;
     role?: string; // The role performed on this specific day
     site?: string;
@@ -41,6 +42,7 @@ export interface Payment {
     employeeId: string;
     amount: number;
     date: string;
+    type?: 'salary' | 'advance' | 'bonus';
     notes?: string;
 }
 
