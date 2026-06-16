@@ -1009,6 +1009,23 @@ tbody tr:hover td {
   background: #fbfcfb;
 }
 
+.employee-row-inactive td {
+  background: #f8faf9;
+  color: var(--color-text-muted);
+}
+
+.employee-row-inactive .employee-cell,
+.employee-row-inactive .pill-row,
+.employee-row-inactive .subtle-stack,
+.employee-row-inactive .rate-chip {
+  filter: grayscale(0.28);
+  opacity: 0.72;
+}
+
+.employee-row-inactive:hover td {
+  background: #f2f5f3;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
