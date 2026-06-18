@@ -1522,6 +1522,57 @@ tbody tr:hover td {
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15), 0 8px 20px rgba(15, 23, 42, 0.05);
 }
 
+.attendance-view-tabs,
+.attendance-filter-tabs {
+  margin-bottom: 0;
+}
+
+.attendance-quick-panel {
+  margin-top: 6px;
+}
+
+.attendance-quick-toolbar {
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.attendance-mark-all {
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.attendance-quick-table table {
+  min-width: 820px;
+}
+
+.attendance-quick-table th:last-child {
+  width: 390px;
+}
+
+.attendance-quick-select {
+  min-width: 160px;
+  max-width: 220px;
+}
+
+.attendance-quick-status-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.attendance-quick-status-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(92px, 1fr));
+  gap: 6px;
+}
+
+.attendance-quick-status-button {
+  min-height: 36px;
+  padding: 6px 9px;
+  font-size: 0.74rem;
+}
+
 .attendance-card {
   position: relative;
   display: grid;
@@ -1907,6 +1958,21 @@ tbody tr:hover td {
 }
 
 @media (max-width: 640px) {
+  .attendance-view-tabs,
+  .attendance-filter-tabs {
+    width: 100%;
+  }
+
+  .attendance-view-tabs .site-filter-tab,
+  .attendance-filter-tabs .site-filter-tab {
+    flex: 1 1 auto;
+  }
+
+  .attendance-quick-toolbar,
+  .attendance-mark-all {
+    width: 100%;
+  }
+
   .attendance-card-header {
     display: grid;
   }

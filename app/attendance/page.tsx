@@ -8,6 +8,10 @@ import { Attendance, AttendanceStatus, Employee } from '@/lib/types';
 import { getSriLankaDate } from '@/lib/dateUtils';
 import { getApplicableDailyRate, getAttendanceHours } from '@/lib/salary';
 
+type AttendanceView = 'card' | 'quick';
+type QuickFilter = AttendanceStatus | 'not-marked' | 'all';
+type EmployeeQuickStatus = QuickFilter;
+
 const calculateHours = (start: string, end: string): number => {
     if (!start || !end) return 0;
     const startDate = new Date(`1970-01-01T${start}`);
@@ -68,6 +72,8 @@ export default function AttendancePage() {
     const { employees, attendance, payments, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, addPayment, deletePayment, sites } = useApp();
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [searchQuery, setSearchQuery] = useState('');
+    const [attendanceView, setAttendanceView] = useState<AttendanceView>('card');
+    const [quickFilter, setQuickFilter] = useState<QuickFilter>('not-marked');
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
     const [employeeRoles, setEmployeeRoles] = useState<Record<string, string>>({});
     const [advanceAmounts, setAdvanceAmounts] = useState<Record<string, string>>({});
@@ -114,6 +120,18 @@ export default function AttendancePage() {
         return attendance
             .filter(a => a.employeeId === employeeId && a.date === selectedDate)
             .sort((a, b) => (a.createdAt || a.id).localeCompare(b.createdAt || b.id));
+    };
+
+    const getEmployeeQuickStatus = (employeeId: string): EmployeeQuickStatus => {
+        const records = getRecords(employeeId);
+        const totalEmployeeHours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
+
+        if (records.length === 0) return 'not-marked';
+        if (records.every(record => record.status === 'absent')) return 'absent';
+        if (totalEmployeeHours >= 10.5) return 'present';
+        if (totalEmployeeHours > 0) return 'half-day';
+
+        return 'not-marked';
     };
 
     const getSelectedSite = (employeeId: string): string => {
@@ -230,6 +248,24 @@ export default function AttendancePage() {
         await Promise.all(paymentIds.map(paymentId => deletePayment(paymentId)));
     };
 
+    const markAllPresent = () => {
+        activeEmployees.forEach(employee => setStatus(employee, 'present'));
+    };
+
+    const quickFilteredEmployees = filteredEmployees.filter(employee => {
+        if (quickFilter === 'all') return true;
+
+        return getEmployeeQuickStatus(employee.id) === quickFilter;
+    });
+
+    const quickFilterOptions: { value: QuickFilter; label: string }[] = [
+        { value: 'not-marked', label: 'Not Marked' },
+        { value: 'present', label: 'Present' },
+        { value: 'half-day', label: 'Half Day' },
+        { value: 'absent', label: 'Absent' },
+        { value: 'all', label: 'All' },
+    ];
+
     return (
         <div className="shell attendance-page">
             <div className="page-header flex-col md:flex-row gap-4 items-start md:items-end">
@@ -240,6 +276,27 @@ export default function AttendancePage() {
                 </div>
 
                 <div className="toolbar">
+                    <div className="site-filter-tabs attendance-view-tabs" role="tablist" aria-label="Attendance view">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={attendanceView === 'card'}
+                            className={`site-filter-tab ${attendanceView === 'card' ? 'active' : ''}`}
+                            onClick={() => setAttendanceView('card')}
+                        >
+                            Card View
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={attendanceView === 'quick'}
+                            className={`site-filter-tab ${attendanceView === 'quick' ? 'active' : ''}`}
+                            onClick={() => setAttendanceView('quick')}
+                        >
+                            Quick View
+                        </button>
+                    </div>
+
                     <div className="search-box">
                         <Search className="text-gray-400" size={18} />
                         <input
@@ -274,7 +331,7 @@ export default function AttendancePage() {
                         <div>
                             <div className="page-kicker">Completion</div>
                             <h2 className="text-xl font-bold">{completionPercent}% marked</h2>
-                            <p className="page-subtitle">{markedCount} of {activeEmployees.length} active employees recorded for {selectedDate}</p>
+                            <p className="page-subtitle">{markedCount} of {activeEmployees.length} employees marked</p>
                         </div>
                         <div className="soft-icon">
                             <CalendarDays size={20} />
@@ -290,220 +347,361 @@ export default function AttendancePage() {
                 <AttendanceStat label="Hours" value={totalHours.toFixed(1)} icon={Timer} tone="info" />
             </div>
 
-            <div className="attendance-grid">
-                {filteredEmployees.length === 0 ? (
-                    <div className="empty-state col-span-full">
+            {attendanceView === 'quick' && (
+                <div className="workbench-panel attendance-quick-panel">
+                    <div className="workbench-header">
                         <div>
-                            <Search size={44} className="mx-auto" />
-                            <h3>{searchQuery ? 'No matching active employees' : 'No active employees'}</h3>
-                            <p>{searchQuery ? 'Try a different name.' : 'Reactivate or add employees before marking attendance.'}</p>
+                            <h2 className="workbench-title">Quick Attendance</h2>
+                            <p className="workbench-meta">{markedCount} of {activeEmployees.length} employees marked</p>
+                        </div>
+                        <div className="toolbar attendance-quick-toolbar">
+                            <div className="site-filter-tabs attendance-filter-tabs" role="tablist" aria-label="Filter attendance records">
+                                {quickFilterOptions.map(option => (
+                                    <button
+                                        key={option.value}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={quickFilter === option.value}
+                                        className={`site-filter-tab ${quickFilter === option.value ? 'active' : ''}`}
+                                        onClick={() => setQuickFilter(option.value)}
+                                    >
+                                        {option.label}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                className="btn btn-primary attendance-mark-all"
+                                onClick={markAllPresent}
+                                disabled={activeEmployees.length === 0}
+                            >
+                                <Check size={16} />
+                                Mark All Present
+                            </button>
                         </div>
                     </div>
-                ) : (
-                    filteredEmployees.map(emp => {
-                        const records = getRecords(emp.id);
-                        const workRecords = records.filter(record => record.status !== 'absent');
-                        const totalEmployeeHours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
-                        const selectedRole = getSelectedRole(emp);
-                        const selectedSite = getSelectedSite(emp.id);
-                        const effectiveRate = getApplicableDailyRate(emp, selectedRole, selectedDate);
-                        const roleOptions = getRoleOptions(emp);
-                        const statusMeta = getStatusMeta(records, totalEmployeeHours);
-                        const isAbsentOnly = records.length > 0 && records.every(record => record.status === 'absent');
-                        const paidAdvancePayments = payments.filter(payment =>
-                            payment.employeeId === emp.id && payment.date === selectedDate && payment.type === 'advance'
-                        );
-                        const paidAdvance = paidAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
 
-                        return (
-                            <div key={emp.id} className={`card attendance-card card-interactive ${statusMeta.cardClassName}`}>
-                                <div className="attendance-card-header">
-                                    <div className="min-w-0">
-                                        <h3>{emp.name}</h3>
-                                        <div className="attendance-card-meta">
-                                            <span>{emp.role}</span>
-                                            <span className="attendance-rate-muted">Rate {effectiveRate}</span>
-                                        </div>
-                                    </div>
-                                    <div className="attendance-card-badges">
-                                        <span className="badge">{totalEmployeeHours.toFixed(1)}h</span>
-                                        <span className={statusMeta.className}>{statusMeta.label}</span>
-                                    </div>
+                    <div className="workbench-body">
+                        {quickFilteredEmployees.length === 0 ? (
+                            <div className="empty-state">
+                                <div>
+                                    <Search size={44} className="mx-auto" />
+                                    <h3>{searchQuery ? 'No matching active employees' : 'No employees in this filter'}</h3>
+                                    <p>{searchQuery ? 'Try a different name.' : 'Switch filters or mark attendance.'}</p>
                                 </div>
+                            </div>
+                        ) : (
+                            <div className="table-container attendance-quick-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Employee</th>
+                                            <th>Role</th>
+                                            <th>Site</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {quickFilteredEmployees.map(emp => {
+                                            const records = getRecords(emp.id);
+                                            const totalEmployeeHours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
+                                            const selectedRole = getSelectedRole(emp);
+                                            const selectedSite = getSelectedSite(emp.id);
+                                            const roleOptions = getRoleOptions(emp);
+                                            const quickStatus = getEmployeeQuickStatus(emp.id);
+                                            const statusMeta = getStatusMeta(records, totalEmployeeHours);
 
-                                <div className="attendance-card-controls">
-                                    <label>
-                                        <span>Role</span>
-                                        <select
-                                            value={selectedRole}
-                                            onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [emp.id]: e.target.value }))}
-                                            className="input"
-                                        >
-                                            {roleOptions.map(role => (
-                                                <option key={role} value={role}>{role}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                    <label>
-                                        <span>Site</span>
-                                        <select
-                                            className="input"
-                                            value={selectedSite}
-                                            onChange={(e) => setEmployeeSites(prev => ({ ...prev, [emp.id]: e.target.value }))}
-                                        >
-                                            <option value="">No Site</option>
-                                            {activeSites.map(s => (
-                                                <option key={s.id} value={s.id}>{s.name}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                </div>
-
-                                <div className="attendance-quick-actions">
-                                    <button
-                                        onClick={() => setStatus(emp, 'present')}
-                                        className={`btn btn-attendance ${totalEmployeeHours >= 10.5 ? 'active-present' : ''}`}
-                                        title="Full Day"
-                                    >
-                                        <Check size={14} />
-                                        <span>Full Day</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setStatus(emp, 'half-day')}
-                                        className={`btn btn-attendance ${totalEmployeeHours > 0 && totalEmployeeHours < 10.5 ? 'active-halfday' : ''}`}
-                                        title="Half Day"
-                                    >
-                                        <Clock size={14} />
-                                        <span>Half Day</span>
-                                    </button>
-
-                                    <button
-                                        onClick={() => setStatus(emp, 'absent')}
-                                        className={`btn btn-attendance ${isAbsentOnly ? 'active-absent' : ''}`}
-                                        title="Reset"
-                                    >
-                                        <X size={14} />
-                                        <span>Reset</span>
-                                    </button>
-                                </div>
-
-                                {workRecords.length > 0 && (
-                                    <div className="attendance-segments-clean">
-                                        <div className="attendance-segments-title">
-                                            <span>Work Segments</span>
-                                            <strong>{workRecords.length}</strong>
-                                        </div>
-                                        {workRecords.map(record => {
-                                            const recordRole = record.role || emp.role;
-                                            const recordRate = getApplicableDailyRate(emp, recordRole, record.date);
                                             return (
-                                                <div key={record.id} className="attendance-segment-clean">
-                                                    <div className="attendance-segment-grid">
+                                                <tr key={emp.id}>
+                                                    <td>
+                                                        <div className="employee-cell">
+                                                            <div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>
+                                                            <div className="min-w-0">
+                                                                <div className="font-bold text-[var(--color-text-main)]">{emp.name}</div>
+                                                                <div className="subtle-line">{totalEmployeeHours.toFixed(1)}h</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td>
                                                         <select
-                                                            className="input"
-                                                            value={recordRole}
-                                                            onChange={(e) => updateSegmentRole(record, e.target.value)}
-                                                            aria-label={`${emp.name} segment role`}
+                                                            value={selectedRole}
+                                                            onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                            className="input attendance-quick-select"
+                                                            aria-label={`${emp.name} role`}
                                                         >
                                                             {roleOptions.map(role => (
                                                                 <option key={role} value={role}>{role}</option>
                                                             ))}
                                                         </select>
+                                                    </td>
+                                                    <td>
                                                         <select
-                                                            className="input"
-                                                            value={record.site || ''}
-                                                            onChange={(e) => updateSegmentSite(record, e.target.value)}
-                                                            aria-label={`${emp.name} segment site`}
+                                                            className="input attendance-quick-select"
+                                                            value={selectedSite}
+                                                            onChange={(e) => setEmployeeSites(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                            aria-label={`${emp.name} site`}
                                                         >
                                                             <option value="">No Site</option>
-                                                            {getSiteOptions(record.site).map(s => (
+                                                            {activeSites.map(s => (
                                                                 <option key={s.id} value={s.id}>{s.name}</option>
                                                             ))}
                                                         </select>
-                                                    </div>
-                                                    <div className="attendance-segment-grid attendance-segment-time-grid">
-                                                        <input
-                                                            type="time"
-                                                            className="input text-center"
-                                                            value={record.startTime || ''}
-                                                            onChange={(e) => updateSegmentTime(record, 'startTime', e.target.value)}
-                                                            aria-label={`${emp.name} segment start time`}
-                                                        />
-                                                        <input
-                                                            type="time"
-                                                            className="input text-center"
-                                                            value={record.endTime || ''}
-                                                            onChange={(e) => updateSegmentTime(record, 'endTime', e.target.value)}
-                                                            aria-label={`${emp.name} segment end time`}
-                                                        />
-                                                        <span className="segment-hours">{getAttendanceHours(record).toFixed(1)}h</span>
-                                                        <button
-                                                            className="icon-button attendance-delete-segment"
-                                                            type="button"
-                                                            title="Delete segment"
-                                                            onClick={() => deleteAttendanceSegment(record.id)}
-                                                        >
-                                                            <Trash2 size={15} />
-                                                        </button>
-                                                    </div>
-                                                    <div className="attendance-rate-muted">Segment rate {recordRate}</div>
-                                                </div>
+                                                    </td>
+                                                    <td>
+                                                        <div className="attendance-quick-status-cell">
+                                                            <span className={statusMeta.className}>{statusMeta.label}</span>
+                                                            <div className="attendance-quick-status-actions">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setStatus(emp, 'present')}
+                                                                    className={`btn btn-attendance attendance-quick-status-button ${quickStatus === 'present' ? 'active-present' : ''}`}
+                                                                >
+                                                                    Present
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setStatus(emp, 'half-day')}
+                                                                    className={`btn btn-attendance attendance-quick-status-button ${quickStatus === 'half-day' ? 'active-halfday' : ''}`}
+                                                                >
+                                                                    Half Day
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setStatus(emp, 'absent')}
+                                                                    className={`btn btn-attendance attendance-quick-status-button ${quickStatus === 'absent' ? 'active-absent' : ''}`}
+                                                                >
+                                                                    Absent
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
                                             );
                                         })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {attendanceView === 'card' && (
+                <div className="attendance-grid">
+                    {filteredEmployees.length === 0 ? (
+                        <div className="empty-state col-span-full">
+                            <div>
+                                <Search size={44} className="mx-auto" />
+                                <h3>{searchQuery ? 'No matching active employees' : 'No active employees'}</h3>
+                                <p>{searchQuery ? 'Try a different name.' : 'Reactivate or add employees before marking attendance.'}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        filteredEmployees.map(emp => {
+                            const records = getRecords(emp.id);
+                            const workRecords = records.filter(record => record.status !== 'absent');
+                            const totalEmployeeHours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
+                            const selectedRole = getSelectedRole(emp);
+                            const selectedSite = getSelectedSite(emp.id);
+                            const effectiveRate = getApplicableDailyRate(emp, selectedRole, selectedDate);
+                            const roleOptions = getRoleOptions(emp);
+                            const statusMeta = getStatusMeta(records, totalEmployeeHours);
+                            const isAbsentOnly = records.length > 0 && records.every(record => record.status === 'absent');
+                            const paidAdvancePayments = payments.filter(payment =>
+                                payment.employeeId === emp.id && payment.date === selectedDate && payment.type === 'advance'
+                            );
+                            const paidAdvance = paidAdvancePayments.reduce((sum, payment) => sum + payment.amount, 0);
+
+                            return (
+                                <div key={emp.id} className={`card attendance-card card-interactive ${statusMeta.cardClassName}`}>
+                                    <div className="attendance-card-header">
+                                        <div className="min-w-0">
+                                            <h3>{emp.name}</h3>
+                                            <div className="attendance-card-meta">
+                                                <span>{emp.role}</span>
+                                                <span className="attendance-rate-muted">Rate {effectiveRate}</span>
+                                            </div>
+                                        </div>
+                                        <div className="attendance-card-badges">
+                                            <span className="badge">{totalEmployeeHours.toFixed(1)}h</span>
+                                            <span className={statusMeta.className}>{statusMeta.label}</span>
+                                        </div>
                                     </div>
-                                )}
 
-                                <button
-                                    className="btn btn-outline attendance-add-segment"
-                                    type="button"
-                                    onClick={() => addSegment(emp)}
-                                >
-                                    <Plus size={16} />
-                                    Add Segment
-                                </button>
-
-                                <form className="attendance-advance-form" onSubmit={(event) => recordAdvancePayment(event, emp)}>
-                                    <div className="attendance-advance-entry">
+                                    <div className="attendance-card-controls">
                                         <label>
-                                            <span>Advance</span>
-                                            <input
-                                                type="number"
+                                            <span>Role</span>
+                                            <select
+                                                value={selectedRole}
+                                                onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [emp.id]: e.target.value }))}
                                                 className="input"
-                                                placeholder="0.00"
-                                                value={advanceAmounts[emp.id] || ''}
-                                                onChange={(e) => setAdvanceAmounts(prev => ({ ...prev, [emp.id]: e.target.value }))}
-                                                min="1"
-                                                step="1"
-                                            />
+                                            >
+                                                {roleOptions.map(role => (
+                                                    <option key={role} value={role}>{role}</option>
+                                                ))}
+                                            </select>
                                         </label>
-                                        <button className="btn btn-outline attendance-advance-button" type="submit">
-                                            <BadgeDollarSign size={16} />
-                                            Paid
+                                        <label>
+                                            <span>Site</span>
+                                            <select
+                                                className="input"
+                                                value={selectedSite}
+                                                onChange={(e) => setEmployeeSites(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                            >
+                                                <option value="">No Site</option>
+                                                {activeSites.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                    </div>
+
+                                    <div className="attendance-quick-actions">
+                                        <button
+                                            onClick={() => setStatus(emp, 'present')}
+                                            className={`btn btn-attendance ${totalEmployeeHours >= 10.5 ? 'active-present' : ''}`}
+                                            title="Full Day"
+                                        >
+                                            <Check size={14} />
+                                            <span>Full Day</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setStatus(emp, 'half-day')}
+                                            className={`btn btn-attendance ${totalEmployeeHours > 0 && totalEmployeeHours < 10.5 ? 'active-halfday' : ''}`}
+                                            title="Half Day"
+                                        >
+                                            <Clock size={14} />
+                                            <span>Half Day</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setStatus(emp, 'absent')}
+                                            className={`btn btn-attendance ${isAbsentOnly ? 'active-absent' : ''}`}
+                                            title="Reset"
+                                        >
+                                            <X size={14} />
+                                            <span>Reset</span>
                                         </button>
                                     </div>
-                                    {paidAdvance > 0 && (
-                                        <div className="attendance-advance-paid">
-                                            <div className="attendance-advance-paid-copy">
-                                                <span>Paid advance</span>
-                                                <strong>{paidAdvance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+
+                                    {workRecords.length > 0 && (
+                                        <div className="attendance-segments-clean">
+                                            <div className="attendance-segments-title">
+                                                <span>Work Segments</span>
+                                                <strong>{workRecords.length}</strong>
                                             </div>
-                                            <button
-                                                className="icon-button attendance-advance-delete"
-                                                type="button"
-                                                title="Delete advance payment"
-                                                onClick={() => deleteAdvancePayments(emp, paidAdvancePayments.map(payment => payment.id))}
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
+                                            {workRecords.map(record => {
+                                                const recordRole = record.role || emp.role;
+                                                const recordRate = getApplicableDailyRate(emp, recordRole, record.date);
+                                                return (
+                                                    <div key={record.id} className="attendance-segment-clean">
+                                                        <div className="attendance-segment-grid">
+                                                            <select
+                                                                className="input"
+                                                                value={recordRole}
+                                                                onChange={(e) => updateSegmentRole(record, e.target.value)}
+                                                                aria-label={`${emp.name} segment role`}
+                                                            >
+                                                                {roleOptions.map(role => (
+                                                                    <option key={role} value={role}>{role}</option>
+                                                                ))}
+                                                            </select>
+                                                            <select
+                                                                className="input"
+                                                                value={record.site || ''}
+                                                                onChange={(e) => updateSegmentSite(record, e.target.value)}
+                                                                aria-label={`${emp.name} segment site`}
+                                                            >
+                                                                <option value="">No Site</option>
+                                                                {getSiteOptions(record.site).map(s => (
+                                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="attendance-segment-grid attendance-segment-time-grid">
+                                                            <input
+                                                                type="time"
+                                                                className="input text-center"
+                                                                value={record.startTime || ''}
+                                                                onChange={(e) => updateSegmentTime(record, 'startTime', e.target.value)}
+                                                                aria-label={`${emp.name} segment start time`}
+                                                            />
+                                                            <input
+                                                                type="time"
+                                                                className="input text-center"
+                                                                value={record.endTime || ''}
+                                                                onChange={(e) => updateSegmentTime(record, 'endTime', e.target.value)}
+                                                                aria-label={`${emp.name} segment end time`}
+                                                            />
+                                                            <span className="segment-hours">{getAttendanceHours(record).toFixed(1)}h</span>
+                                                            <button
+                                                                className="icon-button attendance-delete-segment"
+                                                                type="button"
+                                                                title="Delete segment"
+                                                                onClick={() => deleteAttendanceSegment(record.id)}
+                                                            >
+                                                                <Trash2 size={15} />
+                                                            </button>
+                                                        </div>
+                                                        <div className="attendance-rate-muted">Segment rate {recordRate}</div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
-                                </form>
-                            </div>
-                        );
-                    })
-                )}
-            </div >
+
+                                    <button
+                                        className="btn btn-outline attendance-add-segment"
+                                        type="button"
+                                        onClick={() => addSegment(emp)}
+                                    >
+                                        <Plus size={16} />
+                                        Add Segment
+                                    </button>
+
+                                    <form className="attendance-advance-form" onSubmit={(event) => recordAdvancePayment(event, emp)}>
+                                        <div className="attendance-advance-entry">
+                                            <label>
+                                                <span>Advance</span>
+                                                <input
+                                                    type="number"
+                                                    className="input"
+                                                    placeholder="0.00"
+                                                    value={advanceAmounts[emp.id] || ''}
+                                                    onChange={(e) => setAdvanceAmounts(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                    min="1"
+                                                    step="1"
+                                                />
+                                            </label>
+                                            <button className="btn btn-outline attendance-advance-button" type="submit">
+                                                <BadgeDollarSign size={16} />
+                                                Paid
+                                            </button>
+                                        </div>
+                                        {paidAdvance > 0 && (
+                                            <div className="attendance-advance-paid">
+                                                <div className="attendance-advance-paid-copy">
+                                                    <span>Paid advance</span>
+                                                    <strong>{paidAdvance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                                                </div>
+                                                <button
+                                                    className="icon-button attendance-advance-delete"
+                                                    type="button"
+                                                    title="Delete advance payment"
+                                                    onClick={() => deleteAdvancePayments(emp, paidAdvancePayments.map(payment => payment.id))}
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </form>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            )}
         </div >
     );
 }
