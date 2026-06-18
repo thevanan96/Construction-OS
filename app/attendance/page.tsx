@@ -202,12 +202,17 @@ export default function AttendancePage() {
         const startTime = field === 'startTime' ? value : (record.startTime || '');
         const endTime = field === 'endTime' ? value : (record.endTime || '');
         const workingHours = calculateHours(startTime, endTime);
+        const nextStatus: AttendanceStatus = workingHours > 0
+            ? statusFromHours(workingHours)
+            : record.status === 'absent'
+                ? 'half-day'
+                : record.status;
 
         updateAttendanceSegment(record.id, {
             startTime,
             endTime,
             workingHours,
-            status: statusFromHours(workingHours)
+            status: nextStatus
         });
     };
 
@@ -499,7 +504,7 @@ export default function AttendancePage() {
                     ) : (
                         filteredEmployees.map(emp => {
                             const records = getRecords(emp.id);
-                            const workRecords = records.filter(record => record.status !== 'absent');
+                            const workRecords = records.filter(record => record.status !== 'absent' || record.startTime || record.endTime);
                             const totalEmployeeHours = records.reduce((sum, record) => sum + getAttendanceHours(record), 0);
                             const selectedRole = getSelectedRole(emp);
                             const selectedSite = getSelectedSite(emp.id);
@@ -619,30 +624,38 @@ export default function AttendancePage() {
                                                                 ))}
                                                             </select>
                                                         </div>
-                                                        <div className="attendance-segment-grid attendance-segment-time-grid">
-                                                            <input
-                                                                type="time"
-                                                                className="input text-center"
-                                                                value={record.startTime || ''}
-                                                                onChange={(e) => updateSegmentTime(record, 'startTime', e.target.value)}
-                                                                aria-label={`${emp.name} segment start time`}
-                                                            />
-                                                            <input
-                                                                type="time"
-                                                                className="input text-center"
-                                                                value={record.endTime || ''}
-                                                                onChange={(e) => updateSegmentTime(record, 'endTime', e.target.value)}
-                                                                aria-label={`${emp.name} segment end time`}
-                                                            />
-                                                            <span className="segment-hours">{getAttendanceHours(record).toFixed(1)}h</span>
-                                                            <button
-                                                                className="icon-button attendance-delete-segment"
-                                                                type="button"
-                                                                title="Delete segment"
-                                                                onClick={() => deleteAttendanceSegment(record.id)}
-                                                            >
-                                                                <Trash2 size={15} />
-                                                            </button>
+                                                        <div className="attendance-segment-time-panel">
+                                                            <label className="attendance-time-field">
+                                                                <span>Start</span>
+                                                                <input
+                                                                    type="time"
+                                                                    className="input attendance-time-input"
+                                                                    value={record.startTime || ''}
+                                                                    onChange={(e) => updateSegmentTime(record, 'startTime', e.target.value)}
+                                                                    aria-label={`${emp.name} segment start time`}
+                                                                />
+                                                            </label>
+                                                            <label className="attendance-time-field">
+                                                                <span>End</span>
+                                                                <input
+                                                                    type="time"
+                                                                    className="input attendance-time-input"
+                                                                    value={record.endTime || ''}
+                                                                    onChange={(e) => updateSegmentTime(record, 'endTime', e.target.value)}
+                                                                    aria-label={`${emp.name} segment end time`}
+                                                                />
+                                                            </label>
+                                                            <div className="attendance-segment-actions">
+                                                                <span className="segment-hours">{getAttendanceHours(record).toFixed(1)}h</span>
+                                                                <button
+                                                                    className="icon-button attendance-delete-segment"
+                                                                    type="button"
+                                                                    title="Delete segment"
+                                                                    onClick={() => deleteAttendanceSegment(record.id)}
+                                                                >
+                                                                    <Trash2 size={15} />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                         <div className="attendance-rate-muted">Segment rate {recordRate}</div>
                                                     </div>
