@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useApp } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Building2, CheckCircle2, Mail, Save, Settings, Trash2, UserRound } from 'lucide-react';
+import { Building2, CheckCircle2, Mail, Save, Settings, ShieldAlert, Trash2, UserRound } from 'lucide-react';
 
 export default function SettingsPage() {
     const { user, updateProfile } = useApp();
@@ -98,12 +98,12 @@ export default function SettingsPage() {
     const canDelete = deleteConfirmation === 'DELETE' && !isDeleting;
 
     return (
-        <div className="shell">
-            <header className="page-header">
+        <div className="shell settings-page">
+            <header className="page-header settings-page-header">
                 <div>
                     <div className="page-kicker">Workspace settings</div>
-                    <h1 className="page-title">Account details</h1>
-                    <p className="page-subtitle">Update the name and company name shown across SiteTrack.</p>
+                    <h1 className="page-title">Settings</h1>
+                    <p className="page-subtitle">Manage profile, company identity, and account safety for this SiteTrack workspace.</p>
                 </div>
             </header>
 
@@ -112,7 +112,7 @@ export default function SettingsPage() {
                     <form onSubmit={handleSubmit} className="panel settings-form">
                         <div className="section-header mb-4">
                             <div>
-                                <h2 className="text-xl font-bold">Edit profile</h2>
+                                <h2 className="text-xl font-bold">Profile & Company</h2>
                                 <p className="page-subtitle">These details appear in the top bar and workspace records.</p>
                             </div>
                             <div className="soft-icon primary">
@@ -120,6 +120,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
+                        <div className="settings-section-label">Profile</div>
                         <div className="form-grid">
                             <div className="form-field">
                                 <label className="label" htmlFor="name">Full Name</label>
@@ -158,6 +159,7 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
+                        <div className="settings-section-label">Account</div>
                         <div className="form-field">
                             <label className="label" htmlFor="email">Email Address</label>
                             <div className="input-wrapper">
@@ -188,7 +190,10 @@ export default function SettingsPage() {
                             </div>
                         )}
 
-                        <div className="toolbar settings-actions">
+                        <div className="toolbar settings-actions settings-save-row">
+                            {hasChanges && (
+                                <span className="settings-unsaved-note">Unsaved profile changes</span>
+                            )}
                             <button
                                 type="submit"
                                 className="btn btn-primary"
@@ -200,22 +205,17 @@ export default function SettingsPage() {
                         </div>
                     </form>
 
-                    <section
-                        className="panel settings-form"
-                        style={{
-                            borderColor: 'var(--color-danger-border)',
-                            background: 'var(--color-danger-bg)'
-                        }}
-                    >
+                    <section className="panel settings-form settings-danger-zone">
                         <div className="section-header mb-4">
                             <div>
+                                <div className="settings-section-label danger">Danger Zone</div>
                                 <h2 className="text-xl font-bold text-danger">Delete Account</h2>
                                 <p className="page-subtitle">
-                                    Permanently delete your account and all associated data. This action cannot be undone.
+                                    Permanently delete your account and associated SiteTrack data. Use this only when closing the workspace.
                                 </p>
                             </div>
                             <div className="soft-icon danger">
-                                <Trash2 size={20} />
+                                <ShieldAlert size={20} />
                             </div>
                         </div>
 
@@ -235,7 +235,7 @@ export default function SettingsPage() {
                         <div className="toolbar settings-actions">
                             <button
                                 type="button"
-                                className="btn btn-danger"
+                                className="btn btn-danger-subtle"
                                 onClick={() => {
                                     setDeleteError('');
                                     setDeleteMessage('');
@@ -257,6 +257,10 @@ export default function SettingsPage() {
                     <p>{user?.name}</p>
 
                     <div className="list-stack mt-6">
+                        <div className="settings-summary-chip">
+                            <span>Workspace</span>
+                            <strong>Active</strong>
+                        </div>
                         <div className="detail-row">
                             <span>Account email</span>
                             <strong>{user?.email}</strong>
@@ -288,7 +292,7 @@ export default function SettingsPage() {
                         <div className="list-stack">
                             <div className="settings-alert danger">
                                 <span>
-                                    This will permanently delete your account and all associated data once backend deletion is connected.
+                                    This will permanently delete your account and associated SiteTrack data.
                                 </span>
                             </div>
 
