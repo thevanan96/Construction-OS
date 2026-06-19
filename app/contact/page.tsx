@@ -1,41 +1,27 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { ExternalLink, Globe2, Linkedin, Mail, Phone } from 'lucide-react';
+import { PublicHeader } from '@/components/PublicHeader';
 
 export default function ContactPage() {
   return (
     <div className="auth-landing contact-page">
-      <header className="auth-topbar">
-        <Link href="/" className="auth-wordmark">
-          <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
-          <span>SiteTrack</span>
-        </Link>
-        <nav className="auth-nav" aria-label="Product">
-          <Link href="/#product">Product</Link>
-          <Link href="/#workflow">Workflow</Link>
-          <Link href="/#pricing">Pricing</Link>
-          <Link href="/#about">About</Link>
-          <Link href="/contact">Contact</Link>
-          <Link href="/login">Sign in</Link>
-          <Link href="/signup" className="auth-nav-cta">Create account</Link>
-        </nav>
-      </header>
+      <PublicHeader />
 
       <main className="about-contact-shell">
         <section className="about-product">
           <div className="about-product-heading">
             <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
             <div>
-              <h1>SiteTrack</h1>
-              <p>A JTK LABS product</p>
+              <h1>Talk to JTK LABS about SiteTrack</h1>
+              <p>Construction workforce management support</p>
             </div>
           </div>
 
           <p>
-            SiteTrack helps construction teams manage employee records, daily site
-            attendance, salary visibility, and payment tracking from one focused
-            operations workspace. It is built by JTK LABS for practical construction
-            workforce management workflows.
+            Need help setting up SiteTrack for your construction company?
+            Contact JTK LABS for workspace setup, rollout support, or product questions
+            about attendance, sites, reports, and payments.
           </p>
 
           <div className="about-actions">
@@ -43,14 +29,14 @@ export default function ContactPage() {
               <Globe2 size={17} />
               Visit JTK LABS
             </a>
-            <Link href="/features" className="btn btn-dark btn-large">
-              View features
+            <Link href="/#product" className="btn btn-dark btn-large">
+              Explore product
             </Link>
           </div>
         </section>
 
         <aside className="connect-card">
-          <h2>Connect with us</h2>
+          <h2>Choose a contact channel</h2>
 
           <div className="connect-list">
             <a href="https://www.linkedin.com/company/jtk-labs" target="_blank" rel="noreferrer" className="connect-item">

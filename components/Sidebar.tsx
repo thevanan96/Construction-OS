@@ -11,7 +11,7 @@ const navItems = [
     { name: 'Employees', href: '/employees', icon: Users },
     { name: 'Sites', href: '/sites', icon: Building },
     { name: 'Attendance', href: '/attendance', icon: CalendarCheck },
-    { name: 'Salary & Payments', href: '/salary', icon: Banknote },
+    { name: 'Payments', href: '/salary', icon: Banknote },
 ];
 
 export function Sidebar() {

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AlertCircle, BarChart3, CalendarCheck, Eye, EyeOff, Loader2, ShieldCheck, Users } from 'lucide-react';
+import { PublicHeader } from '@/components/PublicHeader';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -34,51 +35,37 @@ export default function LoginPage() {
 
     return (
         <div className="auth-landing">
-            <header className="auth-topbar">
-                <Link href="/" className="auth-wordmark">
-                    <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
-                    <span>SiteTrack</span>
-                </Link>
-                <nav className="auth-nav" aria-label="Product">
-                    <Link href="/#product">Product</Link>
-                    <Link href="/#workflow">Workflow</Link>
-                    <Link href="/#pricing">Pricing</Link>
-                    <Link href="/#security">Security</Link>
-                    <Link href="/#about">About</Link>
-                    <Link href="/contact">Contact</Link>
-                    <Link href="/signup">Create account</Link>
-                </nav>
-            </header>
+            <PublicHeader />
 
             <main className="auth-hero">
                 <section className="auth-hero-copy">
                     <div className="hero-badge">
                         <ShieldCheck size={16} />
-                        Construction workforce management
+                        Secure SiteTrack access
                     </div>
-                    <h1>Run site attendance, payroll visibility, and crew records from one command center.</h1>
+                    <h1>Sign in to keep today&apos;s site operations moving.</h1>
                     <p>
-                        SiteTrack helps contractors and site supervisors keep daily operations clean,
-                        accountable, and ready for payment decisions.
+                        Continue managing crew records, Quick Mark attendance, active sites,
+                        and payment visibility from your SiteTrack workspace.
                     </p>
 
                     <div className="hero-actions">
                         <Link href="/signup" className="btn btn-primary btn-large">
                             Start workspace
                         </Link>
-                        <Link href="/features" className="btn btn-outline btn-large">
-                            View features
+                        <Link href="/#product" className="btn btn-outline btn-large">
+                            Explore product
                         </Link>
                     </div>
 
                     <div className="auth-stats" aria-label="SiteTrack highlights">
                         <div>
-                            <strong>Daily</strong>
-                            <span>attendance logs</span>
+                            <strong>Quick</strong>
+                            <span>attendance marking</span>
                         </div>
                         <div>
                             <strong>Live</strong>
-                            <span>salary exposure</span>
+                            <span>payment visibility</span>
                         </div>
                         <div>
                             <strong>Multi-site</strong>
@@ -194,7 +181,7 @@ export default function LoginPage() {
             </section>
 
             <footer className="auth-copyright">
-                    SiteTrack by JTK Labs Pvt Ltd
+                    © 2026 SiteTrack by JTK LABS.
             </footer>
         </div>
     );

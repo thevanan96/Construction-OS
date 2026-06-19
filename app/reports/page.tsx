@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Filter, FileText } from 'lucide-react';
+import { BadgeDollarSign, CalendarDays, Clock, Filter, FileText, Users } from 'lucide-react';
 import { calculateAttendanceSegmentCosts } from '@/lib/salary';
 
 export default function ReportsPage() {
@@ -37,14 +37,18 @@ export default function ReportsPage() {
             });
         });
 
-        return { totalCost, employeeCosts };
+        const rows = Object.values(employeeCosts).sort((a, b) => b.cost - a.cost);
+        const totalHours = rows.reduce((sum, item) => sum + item.hours, 0);
+
+        return { totalCost, employeeCosts, rows, totalHours };
     };
 
     const reportData = calculateReport();
+    const selectedSiteName = reportSite ? sites.find(s => s.id === reportSite)?.name || 'Selected site' : 'All sites';
 
     return (
-        <div className="shell">
-            <div className="page-header">
+        <div className="shell reports-page">
+            <div className="page-header reports-header">
                 <div>
                     <div className="page-kicker">Analysis</div>
                     <h1 className="page-title">Reports</h1>
@@ -52,13 +56,18 @@ export default function ReportsPage() {
                 </div>
             </div>
 
-            <div className="panel mb-8">
-                <div className="flex items-center gap-2 mb-4 text-blue-800">
-                    <Filter size={20} />
-                    <h2 className="font-bold">Report Settings</h2>
+            <div className="panel reports-filter-panel mb-8">
+                <div className="section-header mb-4">
+                    <div>
+                        <h2 className="text-xl font-bold">Report Settings</h2>
+                        <p className="page-subtitle">Select the site and date range to generate labor cost totals.</p>
+                    </div>
+                    <div className="soft-icon info">
+                        <Filter size={20} />
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="reports-filter-grid">
                     <div>
                         <label className="label">Site</label>
                         <select
@@ -94,24 +103,44 @@ export default function ReportsPage() {
             </div>
 
             {reportData ? (
-                <div>
-                    <div className="panel mb-8 text-center" style={{ background: 'var(--color-dark)', color: '#fff' }}>
-                        <p className="font-medium mb-2 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.66)' }}>Total Labor Cost</p>
-                        <p className="text-5xl font-bold mb-2">{reportData.totalCost.toLocaleString()}</p>
-                        <p className="text-sm" style={{ color: 'rgba(255,255,255,0.66)' }}>
-                            {reportSite ? `at ${sites.find(s => s.id === reportSite)?.name}` : 'Across All Sites'}
-                            {' - '}
-                            {reportStart} to {reportEnd}
-                        </p>
+                <div className="reports-results">
+                    <div className="reports-summary-panel mb-8">
+                        <div>
+                            <p>Total Labor Cost</p>
+                            <strong>{reportData.totalCost.toLocaleString()}</strong>
+                            <span>{selectedSiteName} · {reportStart} to {reportEnd}</span>
+                        </div>
+                        <div className="reports-summary-grid">
+                            <div>
+                                <BadgeDollarSign size={18} />
+                                <span>Cost</span>
+                                <strong>{reportData.totalCost.toLocaleString()}</strong>
+                            </div>
+                            <div>
+                                <Clock size={18} />
+                                <span>Hours</span>
+                                <strong>{reportData.totalHours.toFixed(1)}</strong>
+                            </div>
+                            <div>
+                                <Users size={18} />
+                                <span>Workers</span>
+                                <strong>{reportData.rows.length}</strong>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="panel">
-                        <div className="flex items-center gap-2 mb-4">
-                            <FileText size={20} className="text-gray-500" />
-                            <h3 className="font-bold text-gray-700">Cost Breakdown by Employee</h3>
+                    <div className="panel reports-breakdown-panel">
+                        <div className="section-header mb-4">
+                            <div>
+                                <h3 className="text-xl font-bold">Cost Breakdown by Employee</h3>
+                                <p className="page-subtitle">Sorted by highest labor cost contribution.</p>
+                            </div>
+                            <div className="soft-icon primary">
+                                <FileText size={20} />
+                            </div>
                         </div>
 
-                        <div className="table-container">
+                        <div className="table-container reports-table-container">
                             <table>
                                 <thead>
                                     <tr>
@@ -121,16 +150,15 @@ export default function ReportsPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {Object.values(reportData.employeeCosts)
-                                        .sort((a, b) => b.cost - a.cost)
+                                    {reportData.rows
                                         .map(item => (
-                                            <tr key={item.name}>
-                                                <td className="font-medium text-gray-900">{item.name}</td>
-                                                <td className="text-right text-gray-600">{item.hours.toFixed(1)}</td>
-                                                <td className="text-right font-mono font-bold text-blue-700">{item.cost.toLocaleString()}</td>
+                                            <tr key={item.name} className="reports-table-row">
+                                                <td data-label="Employee" className="font-medium text-gray-900">{item.name}</td>
+                                                <td data-label="Total Hours" className="text-right text-gray-600">{item.hours.toFixed(1)}</td>
+                                                <td data-label="Cost Contribution" className="text-right font-mono font-bold text-blue-700">{item.cost.toLocaleString()}</td>
                                             </tr>
                                         ))}
-                                    {Object.keys(reportData.employeeCosts).length === 0 && (
+                                    {reportData.rows.length === 0 && (
                                         <tr>
                                             <td colSpan={3} className="text-center py-8 text-gray-400">No work records found for this period.</td>
                                         </tr>
@@ -143,7 +171,7 @@ export default function ReportsPage() {
             ) : (
                 <div className="empty-state">
                     <div>
-                        <Filter size={44} className="mx-auto" />
+                        <CalendarDays size={44} className="mx-auto" />
                         <h3>Select a date range</h3>
                         <p>Choose start and end dates above to generate the report.</p>
                     </div>

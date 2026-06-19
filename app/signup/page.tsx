@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AlertCircle, BarChart3, Building2, CalendarCheck, Eye, EyeOff, ShieldCheck, Users } from 'lucide-react';
+import { PublicHeader } from '@/components/PublicHeader';
 
 export default function SignupPage() {
     const router = useRouter();
@@ -42,32 +43,18 @@ export default function SignupPage() {
 
     return (
         <div className="auth-landing">
-            <header className="auth-topbar">
-                <Link href="/" className="auth-wordmark">
-                    <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
-                    <span>SiteTrack</span>
-                </Link>
-                <nav className="auth-nav" aria-label="Product">
-                    <Link href="/#product">Product</Link>
-                    <Link href="/#workflow">Workflow</Link>
-                    <Link href="/#pricing">Pricing</Link>
-                    <Link href="/#security">Security</Link>
-                    <Link href="/#about">About</Link>
-                    <Link href="/contact">Contact</Link>
-                    <Link href="/login">Sign in</Link>
-                </nav>
-            </header>
+            <PublicHeader />
 
             <main className="auth-hero">
                 <section className="auth-hero-copy">
                     <div className="hero-badge">
                         <ShieldCheck size={16} />
-                        Construction workforce management
+                        Start a SiteTrack workspace
                     </div>
-                    <h1>Set up a cleaner operating rhythm for every site day.</h1>
+                    <h1>Create a modern operating rhythm for every site day.</h1>
                     <p>
-                        Create a SiteTrack workspace for employee records, attendance,
-                        site assignments, and payment visibility from day one.
+                        Set up SiteTrack for employee records, Quick Mark attendance,
+                        site assignments, reports, and payment visibility from day one.
                     </p>
 
                     <div className="hero-actions">
@@ -78,12 +65,12 @@ export default function SignupPage() {
 
                     <div className="auth-stats" aria-label="SiteTrack highlights">
                         <div>
-                            <strong>Fast</strong>
+                            <strong>Simple</strong>
                             <span>company setup</span>
                         </div>
                         <div>
-                            <strong>Clean</strong>
-                            <span>daily records</span>
+                            <strong>Mobile</strong>
+                            <span>site workflows</span>
                         </div>
                         <div>
                             <strong>Ready</strong>
@@ -214,7 +201,7 @@ export default function SignupPage() {
             </section>
 
             <footer className="auth-copyright">
-                    SiteTrack by JTK Labs Pvt Ltd
+                    © 2026 SiteTrack by JTK LABS.
             </footer>
         </div>
     );
