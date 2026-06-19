@@ -1,9 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Plus, MapPin, Building, Edit, PauseCircle, CheckCircle2, RotateCcw, PlayCircle } from 'lucide-react';
+import { Plus, MapPin, Building, Edit, PauseCircle, CheckCircle2, RotateCcw, PlayCircle, CalendarCheck, Clock, Users } from 'lucide-react';
 import { Site } from '@/lib/types';
+import { getAttendanceHours } from '@/lib/salary';
 
 type SiteStatus = NonNullable<Site['status']>;
 type SiteFilter = SiteStatus | 'all';
@@ -29,7 +31,7 @@ const STATUS_META: Record<SiteStatus, { label: string; badgeClass: string; cardC
 const getSiteStatus = (site: Site): SiteStatus => site.status || 'active';
 
 export default function SitesPage() {
-    const { sites, addSite, updateSite } = useApp();
+    const { sites, attendance, addSite, updateSite } = useApp();
     const [isAdding, setIsAdding] = useState(false);
     const [editingSite, setEditingSite] = useState<Site | null>(null);
     const [selectedFilter, setSelectedFilter] = useState<SiteFilter>('active');
@@ -41,6 +43,9 @@ export default function SitesPage() {
     const activeCount = sites.filter(site => getSiteStatus(site) === 'active').length;
     const onHoldCount = sites.filter(site => getSiteStatus(site) === 'on-hold').length;
     const completedCount = sites.filter(site => getSiteStatus(site) === 'completed').length;
+    const today = new Date().toISOString().split('T')[0];
+    const todaysAttendance = attendance.filter(record => record.date === today);
+    const todaySiteHours = todaysAttendance.reduce((sum, record) => sum + getAttendanceHours(record), 0);
     const visibleSites = selectedFilter === 'all'
         ? sites
         : sites.filter(site => getSiteStatus(site) === selectedFilter);
@@ -88,12 +93,12 @@ export default function SitesPage() {
     };
 
     return (
-        <div className="shell">
-            <div className="page-header">
+        <div className="shell sites-page">
+            <div className="page-header sites-header">
                 <div>
                     <div className="page-kicker">Projects</div>
                     <h1 className="page-title">Sites</h1>
-                    <p className="page-subtitle">Manage active job sites and location references for attendance.</p>
+                    <p className="page-subtitle">Manage job sites, track today&apos;s staffing, and keep attendance locations clean.</p>
                 </div>
                 <button
                     onClick={() => {
@@ -112,10 +117,11 @@ export default function SitesPage() {
                 <SummaryChip label="Active" value={activeCount} tone="active" />
                 <SummaryChip label="On Hold" value={onHoldCount} tone="hold" />
                 <SummaryChip label="Completed" value={completedCount} tone="completed" />
+                <SummaryChip label="Today Hours" value={Number(todaySiteHours.toFixed(1))} tone="hours" />
                 <SummaryChip label="Total" value={sites.length} tone="total" />
             </div>
 
-            <div className="site-filter-tabs" role="tablist" aria-label="Filter sites by status">
+            <div className="site-filter-tabs sites-filter-tabs" role="tablist" aria-label="Filter sites by status">
                 <button
                     type="button"
                     role="tab"
@@ -209,7 +215,7 @@ export default function SitesPage() {
                 </div>
             )}
 
-            <div className="dashboard-grid">
+            <div className="dashboard-grid sites-grid">
                 {sites.length === 0 ? (
                     <div className="empty-state col-span-full">
                         <div>
@@ -230,10 +236,13 @@ export default function SitesPage() {
                     visibleSites.map(site => {
                         const status = getSiteStatus(site);
                         const meta = STATUS_META[status];
+                        const siteRecords = todaysAttendance.filter(record => record.site === site.id);
+                        const siteWorkers = new Set(siteRecords.map(record => record.employeeId)).size;
+                        const siteHours = siteRecords.reduce((sum, record) => sum + getAttendanceHours(record), 0);
 
                         return (
                         <div key={site.id} className={`card card-interactive site-card ${meta.cardClass}`}>
-                            <div className="flex justify-between items-start mb-4">
+                            <div className="site-card-top">
                                 <div className="min-w-0">
                                     <div className={`soft-icon mb-3 ${status === 'active' ? 'primary' : status === 'completed' ? 'info' : 'warning'}`}>
                                         <Building size={20} />
@@ -244,7 +253,7 @@ export default function SitesPage() {
                                         <span>{site.location}</span>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="site-card-edit">
                                     <button
                                         onClick={() => handleEdit(site)}
                                         className="btn btn-info btn-icon"
@@ -256,13 +265,32 @@ export default function SitesPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-4 pt-4 border-t border-[var(--color-border)]">
+                            <div className="site-operational-grid">
+                                <div className="site-operational-tile">
+                                    <Users size={15} />
+                                    <span>Workers</span>
+                                    <strong>{siteWorkers}</strong>
+                                </div>
+                                <div className="site-operational-tile">
+                                    <Clock size={15} />
+                                    <span>Hours</span>
+                                    <strong>{siteHours.toFixed(1)}</strong>
+                                </div>
+                            </div>
+
+                            <div className="site-status-row">
                                 <span className={`badge ${meta.badgeClass}`}>
                                     {meta.label}
                                 </span>
                             </div>
 
                             <div className="site-card-actions">
+                                {status === 'active' && (
+                                    <Link href="/attendance" className="btn btn-primary btn-sm">
+                                        <CalendarCheck size={15} />
+                                        Mark Attendance
+                                    </Link>
+                                )}
                                 {status === 'active' && (
                                     <>
                                         <button
@@ -323,7 +351,7 @@ export default function SitesPage() {
     );
 }
 
-function SummaryChip({ label, value, tone }: { label: string; value: number; tone: 'active' | 'hold' | 'completed' | 'total' }) {
+function SummaryChip({ label, value, tone }: { label: string; value: number; tone: 'active' | 'hold' | 'completed' | 'hours' | 'total' }) {
     return (
         <div className={`site-summary-chip site-summary-${tone}`}>
             <span>{label}</span>

@@ -4754,3 +4754,270 @@ canvas {
     grid-template-columns: 1fr;
   }
 }
+
+/* Sites Phase 4: operational project cards. */
+.sites-header {
+  align-items: flex-end;
+}
+
+.sites-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.site-summary-hours {
+  border-color: var(--color-info);
+  background: linear-gradient(135deg, var(--color-info-soft), #fff 62%);
+}
+
+.site-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.site-card-edit {
+  flex: 0 0 auto;
+}
+
+.site-operational-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.site-operational-tile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 7px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-soft);
+  padding: 10px;
+}
+
+.site-operational-tile svg {
+  color: var(--color-text-muted);
+}
+
+.site-operational-tile span {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.site-operational-tile strong {
+  grid-column: 1 / -1;
+  color: var(--color-dark);
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.site-status-row {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.site-card-actions .btn-primary {
+  flex: 1 1 100%;
+}
+
+@media (max-width: 900px) {
+  .sites-header {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .site-card-top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .site-operational-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Payments Phase 5: balance-first payment workbench. */
+.payments-header {
+  align-items: flex-end;
+}
+
+.payments-date-control {
+  min-width: 230px;
+}
+
+.payments-search-box {
+  min-width: 320px;
+}
+
+.payments-daily-log {
+  border-color: #bfdbfe;
+  background:
+    linear-gradient(135deg, rgba(239, 246, 255, 0.95), rgba(255, 255, 255, 0.72)),
+    #fff;
+}
+
+.payments-daily-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.payment-card {
+  position: relative;
+}
+
+.payment-card-due {
+  border-color: var(--color-danger-border);
+}
+
+.payment-card-settled {
+  border-color: var(--color-success-border);
+}
+
+.payment-card-due .salary-balance {
+  background:
+    linear-gradient(135deg, rgba(254, 242, 242, 0.95), rgba(255, 255, 255, 0.72)),
+    #fff;
+}
+
+.payment-card-settled .salary-balance {
+  background:
+    linear-gradient(135deg, rgba(236, 253, 245, 0.95), rgba(255, 255, 255, 0.72)),
+    #fff;
+}
+
+.payment-card-note {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.payment-modal-balance {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-soft);
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .payments-header {
+    align-items: stretch;
+  }
+
+  .payments-date-control,
+  .payments-search-box {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .payments-daily-log-header {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 520px) {
+  .payments-daily-log-header {
+    display: grid;
+  }
+}
+
+/* Settings Phase 6: clearer account sections and safer danger zone. */
+.settings-page-header {
+  align-items: flex-end;
+}
+
+.settings-page .settings-form.panel,
+.settings-page .settings-summary {
+  box-shadow: var(--shadow-sm);
+}
+
+.settings-section-label {
+  margin: 18px 0 10px;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.settings-section-label:first-child {
+  margin-top: 0;
+}
+
+.settings-section-label.danger {
+  color: var(--color-danger);
+}
+
+.settings-save-row {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-unsaved-note {
+  color: var(--color-warning);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.settings-danger-zone {
+  border-color: var(--color-danger-border);
+  background:
+    linear-gradient(135deg, rgba(254, 242, 242, 0.84), rgba(255, 255, 255, 0.72)),
+    #fff;
+}
+
+.settings-danger-zone .btn-danger-subtle {
+  justify-self: flex-start;
+}
+
+.settings-summary-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--radius-md);
+  background: var(--color-success-bg);
+  padding: 10px 12px;
+}
+
+.settings-summary-chip span {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.settings-summary-chip strong {
+  color: var(--color-success);
+  font-size: 0.88rem;
+}
+
+@media (max-width: 900px) {
+  .settings-page-header {
+    align-items: stretch;
+  }
+
+  .settings-save-row {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 520px) {
+  .settings-save-row {
+    display: grid;
+  }
+}
