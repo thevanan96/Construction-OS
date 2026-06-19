@@ -26,8 +26,11 @@ export function Navbar() {
         <header className="navbar">
             <div className="navbar-left">
                 <div className="navbar-brand">
-                    <Image src="/sitetrack-logo.png" alt="SiteTrack" width={910} height={330} priority />
-                    <span className="navbar-brand-text">SiteTrack</span>
+                    <Image src="/fieldmetrik-mark.png" alt="" width={300} height={300} priority />
+                    <span className="navbar-brand-text brand-wordmark" aria-label="FieldMetrik">
+                        <span>Field</span>
+                        <span className="brand-wordmark-accent">Metrik</span>
+                    </span>
                 </div>
 
                 <nav className="navbar-menu navbar-desktop-only">

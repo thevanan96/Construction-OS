@@ -11,15 +11,15 @@ export default function ContactPage() {
       <main className="about-contact-shell">
         <section className="about-product">
           <div className="about-product-heading">
-            <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
+            <Image src="/fieldmetrik-mark.png" alt="" width={300} height={300} priority />
             <div>
-              <h1>Talk to JTK LABS about SiteTrack</h1>
+              <h1>Talk to JTK LABS about FieldMetrik</h1>
               <p>Construction workforce management support</p>
             </div>
           </div>
 
           <p>
-            Need help setting up SiteTrack for your construction company?
+            Need help setting up FieldMetrik for your construction company?
             Contact JTK LABS for workspace setup, rollout support, or product questions
             about attendance, sites, reports, and payments.
           </p>
@@ -74,9 +74,9 @@ export default function ContactPage() {
       </main>
 
       <footer className="about-footer">
-        <span>© 2026 SiteTrack by JTK LABS. All rights reserved.</span>
+        <span>© 2026 FieldMetrik by JTK LABS. All rights reserved.</span>
         <nav aria-label="Contact">
-          <Link href="/">SiteTrack</Link>
+          <Link href="/">FieldMetrik</Link>
         </nav>
       </footer>
     </div>

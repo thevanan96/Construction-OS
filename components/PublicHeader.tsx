@@ -35,8 +35,11 @@ export function PublicHeader() {
   return (
     <header className="auth-topbar public-header">
       <Link href="/" className="auth-wordmark" onClick={() => setIsOpen(false)}>
-        <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
-        <span>SiteTrack</span>
+        <Image src="/fieldmetrik-mark.png" alt="" width={300} height={300} priority />
+        <span className="brand-wordmark" aria-label="FieldMetrik">
+          <span>Field</span>
+          <span className="brand-wordmark-accent">Metrik</span>
+        </span>
       </Link>
 
       <nav className="auth-nav public-nav-desktop" aria-label="Product">

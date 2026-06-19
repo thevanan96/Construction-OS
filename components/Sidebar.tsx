@@ -21,8 +21,11 @@ export function Sidebar() {
     return (
         <aside className="sidebar">
             <div className="brand">
-                <Image src="/sitetrack-logo.png" alt="SiteTrack" width={910} height={330} />
-                <h1>SiteTrack</h1>
+                <Image src="/fieldmetrik-mark.png" alt="" width={300} height={300} />
+                <h1 className="brand-wordmark" aria-label="FieldMetrik">
+                    <span>Field</span>
+                    <span className="brand-wordmark-accent">Metrik</span>
+                </h1>
                 <p>Employee Management</p>
             </div>
             <nav className="nav-menu">

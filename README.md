@@ -1,6 +1,6 @@
-# SiteTrack
+# FieldMetrik
 
-SiteTrack is a construction employee management workspace for tracking crews, sites, attendance, daily hours, salary exposure, and payment history.
+FieldMetrik is a construction employee management workspace for tracking crews, sites, attendance, daily hours, salary exposure, and payment history.
 
 ## Getting Started
 

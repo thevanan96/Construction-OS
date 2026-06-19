@@ -38,7 +38,7 @@ export default function FeaturesPage() {
           </div>
           <h1>Everything your site team needs before payroll becomes messy.</h1>
           <p>
-            SiteTrack keeps construction employee records, attendance, site activity,
+            FieldMetrik keeps construction employee records, attendance, site activity,
             and payment visibility connected in one professional workspace.
           </p>
           <div className="hero-actions">
@@ -51,7 +51,7 @@ export default function FeaturesPage() {
           </div>
         </section>
 
-        <section className="features-dashboard-preview" aria-label="SiteTrack preview">
+        <section className="features-dashboard-preview" aria-label="FieldMetrik preview">
           <div className="preview-topline">
             <span>Today&apos;s site pulse</span>
             <strong>Live overview</strong>
@@ -92,7 +92,7 @@ export default function FeaturesPage() {
       </section>
 
       <footer className="auth-copyright">
-        SiteTrack by JTK Labs Pvt Ltd
+        FieldMetrik by JTK Labs Pvt Ltd
       </footer>
     </div>
   );
