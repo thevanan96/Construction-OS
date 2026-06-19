@@ -27,7 +27,8 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
         return (
             <div className="flex items-center justify-center" style={{ minHeight: '100vh', padding: '24px' }}>
                 <div className="panel text-center" style={{ width: 'min(100%, 360px)' }}>
-                    <Image className="loading-logo mx-auto mb-4" src="/sitetrack-logo.png" alt="SiteTrack" width={910} height={330} priority />
+                    <Image className="loading-logo mx-auto mb-4" src="/fieldmetrik-mark.png" alt="" width={300} height={300} priority />
+                    <h1 className="text-xl font-bold mb-2" style={{ color: 'var(--color-dark)' }}>FieldMetrik</h1>
                     <div className="animate-pulse font-bold text-lg" style={{ color: 'var(--color-dark)' }}>
                         Preparing your workspace
                     </div>

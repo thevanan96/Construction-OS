@@ -49,11 +49,11 @@ export default function SignupPage() {
                 <section className="auth-hero-copy">
                     <div className="hero-badge">
                         <ShieldCheck size={16} />
-                        Start a SiteTrack workspace
+                        Start a FieldMetrik workspace
                     </div>
                     <h1>Create a modern operating rhythm for every site day.</h1>
                     <p>
-                        Set up SiteTrack for employee records, Quick Mark attendance,
+                        Set up FieldMetrik for employee records, Quick Mark attendance,
                         site assignments, reports, and payment visibility from day one.
                     </p>
 
@@ -63,7 +63,7 @@ export default function SignupPage() {
                         </Link>
                     </div>
 
-                    <div className="auth-stats" aria-label="SiteTrack highlights">
+                    <div className="auth-stats" aria-label="FieldMetrik highlights">
                         <div>
                             <strong>Simple</strong>
                             <span>company setup</span>
@@ -82,10 +82,10 @@ export default function SignupPage() {
                 <aside className="auth-panel">
                     <div className="auth-form-container">
                         <div className="auth-logo">
-                            <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
+                            <Image src="/fieldmetrik-mark.png" alt="" width={300} height={300} priority />
                             <div className="auth-logo-text">
                                 <strong>Create workspace</strong>
-                                <span>Start using SiteTrack</span>
+                                <span>Start using FieldMetrik</span>
                             </div>
                         </div>
 
@@ -201,7 +201,7 @@ export default function SignupPage() {
             </section>
 
             <footer className="auth-copyright">
-                    © 2026 SiteTrack by JTK LABS.
+                    © 2026 FieldMetrik by JTK LABS.
             </footer>
         </div>
     );

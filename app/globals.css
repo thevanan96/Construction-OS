@@ -199,6 +199,7 @@ textarea,
   display: flex;
   align-items: center;
   min-width: 0;
+  gap: 10px;
 }
 
 .navbar-brand img {
@@ -210,12 +211,22 @@ textarea,
 }
 
 .navbar-brand-text {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
   white-space: nowrap;
+}
+
+.brand-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  letter-spacing: 0;
+}
+
+.brand-wordmark-accent {
+  color: #f97316;
 }
 
 @media (max-width: 480px) {
@@ -5035,8 +5046,12 @@ canvas {
   box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
 }
 
-.auth-wordmark span {
+.auth-wordmark > span {
   color: var(--color-dark);
+}
+
+.auth-wordmark .brand-wordmark-accent {
+  color: #f97316;
 }
 
 .auth-nav a {

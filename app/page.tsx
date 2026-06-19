@@ -46,11 +46,11 @@ export default function LandingPage() {
         <section className="marketing-copy">
           <div className="hero-badge">
             <ClipboardList size={16} />
-            SiteTrack for construction teams
+            FieldMetrik for construction teams
           </div>
           <h1>Modern workforce control for construction site operations.</h1>
           <p>
-            SiteTrack gives owners, supervisors, and site managers a cleaner way to manage crew records,
+            FieldMetrik gives owners, supervisors, and site managers a cleaner way to manage crew records,
             daily attendance, site activity, and payment visibility from one professional workspace.
           </p>
           <div className="hero-actions">
@@ -61,8 +61,8 @@ export default function LandingPage() {
 
         <section className="site-hero-visual" aria-label="Construction site operations preview">
           <Image
-            src="/sitetrack-hero-site.png"
-            alt="Construction site supervisors reviewing SiteTrack operations on a tablet"
+            src="/fieldmetrik-hero-site.png"
+            alt="Construction site supervisors reviewing FieldMetrik operations on a tablet"
             width={1792}
             height={1024}
             priority
@@ -110,7 +110,7 @@ export default function LandingPage() {
         <div className="construction-image-grid">
           <figure>
             <Image
-              src="/sitetrack-workflow-site.png"
+              src="/fieldmetrik-workflow-site.png"
               alt="Construction crew checking in at a site entrance with tablet attendance"
               width={1792}
               height={1024}
@@ -119,7 +119,7 @@ export default function LandingPage() {
           </figure>
           <figure>
             <Image
-              src="/sitetrack-crew-panel.png"
+              src="/fieldmetrik-crew-panel.png"
               alt="Construction managers reviewing site records and payment visibility"
               width={1792}
               height={1024}
@@ -136,7 +136,7 @@ export default function LandingPage() {
         </div>
         <div className="workflow-visual-stack">
           <Image
-            src="/sitetrack-workflow-site.png"
+            src="/fieldmetrik-workflow-site.png"
             alt="Site supervisor recording crew attendance at a construction gate"
             width={1792}
             height={1024}
@@ -164,14 +164,14 @@ export default function LandingPage() {
       <section id="about" className="marketing-section about-strip">
         <div className="landing-about-product">
           <div className="about-product-heading">
-            <Image src="/sitetrack-mark.png" alt="" width={300} height={300} />
+            <Image src="/fieldmetrik-mark.png" alt="" width={300} height={300} />
             <div>
-              <h2>SiteTrack</h2>
+              <h2>FieldMetrik</h2>
               <p>A JTK LABS product</p>
             </div>
           </div>
           <p>
-            SiteTrack is built for practical construction workforce management,
+            FieldMetrik is built for practical construction workforce management,
             daily attendance, site records, reports, and payment clarity.
           </p>
           <div className="about-actions">
@@ -220,7 +220,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="about-footer">
-        <span>© 2026 SiteTrack by JTK LABS. All rights reserved.</span>
+        <span>© 2026 FieldMetrik by JTK LABS. All rights reserved.</span>
         <nav aria-label="Contact">
           <Link href="/contact">Contact</Link>
         </nav>

@@ -103,7 +103,7 @@ export default function SettingsPage() {
                 <div>
                     <div className="page-kicker">Workspace settings</div>
                     <h1 className="page-title">Settings</h1>
-                    <p className="page-subtitle">Manage profile, company identity, and account safety for this SiteTrack workspace.</p>
+                    <p className="page-subtitle">Manage profile, company identity, and account safety for this FieldMetrik workspace.</p>
                 </div>
             </header>
 
@@ -211,7 +211,7 @@ export default function SettingsPage() {
                                 <div className="settings-section-label danger">Danger Zone</div>
                                 <h2 className="text-xl font-bold text-danger">Delete Account</h2>
                                 <p className="page-subtitle">
-                                    Permanently delete your account and associated SiteTrack data. Use this only when closing the workspace.
+                                    Permanently delete your account and associated FieldMetrik data. Use this only when closing the workspace.
                                 </p>
                             </div>
                             <div className="soft-icon danger">
@@ -292,7 +292,7 @@ export default function SettingsPage() {
                         <div className="list-stack">
                             <div className="settings-alert danger">
                                 <span>
-                                    This will permanently delete your account and associated SiteTrack data.
+                                    This will permanently delete your account and associated FieldMetrik data.
                                 </span>
                             </div>
 
