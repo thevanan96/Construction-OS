@@ -13,6 +13,7 @@ export default function EmployeesPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedFilter, setSelectedFilter] = useState<EmployeeFilter>('active');
+    const [selectedRole, setSelectedRole] = useState('all');
 
     // Increment Modal State
     const [showIncrementModal, setShowIncrementModal] = useState(false);
@@ -243,22 +244,30 @@ export default function EmployeesPage() {
         if (selectedFilter === 'inactive') return !emp.active;
         return true;
     });
-    const filteredEmployees = employeesByStatus.filter(emp =>
-        emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (emp.nic && emp.nic.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const roleOptions = Array.from(new Set(
+        employees.flatMap(emp => [emp.role, ...(emp.additionalRoles || []).map(role => role.role)])
+            .filter(Boolean)
+    )).sort((a, b) => a.localeCompare(b));
+    const filteredEmployees = employeesByStatus.filter(emp => {
+        const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (emp.nic && emp.nic.toLowerCase().includes(searchTerm.toLowerCase()));
+        const employeeRoles = [emp.role, ...(emp.additionalRoles || []).map(role => role.role)];
+        const matchesRole = selectedRole === 'all' || employeeRoles.includes(selectedRole);
+
+        return matchesSearch && matchesRole;
+    });
     const activeEmployees = employees.filter(emp => emp.active).length;
     const inactiveEmployees = employees.length - activeEmployees;
     const totalRoles = employees.reduce((count, emp) => count + 1 + (emp.additionalRoles?.length || 0), 0);
 
     return (
-        <div className="shell">
-            <div className="page-header">
+        <div className="shell employees-page">
+            <div className="page-header employees-header">
                 <div>
                     <div className="page-kicker">Workforce</div>
                     <h1 className="page-title">Employees</h1>
-                    <p className="page-subtitle">Manage worker profiles, roles, rates, and contact records.</p>
+                    <p className="page-subtitle">Search worker profiles, manage roles and rates, and keep attendance-ready records clean.</p>
                 </div>
                 <button
                     onClick={handleOpenAdd}
@@ -308,7 +317,7 @@ export default function EmployeesPage() {
                 </div>
             </div>
 
-            <div className="site-filter-tabs" role="tablist" aria-label="Filter employees by status">
+            <div className="site-filter-tabs employees-filter-tabs" role="tablist" aria-label="Filter employees by status">
                 <button
                     type="button"
                     role="tab"
@@ -352,6 +361,7 @@ export default function EmployeesPage() {
                         </div>
 
                         <form onSubmit={handleSubmit}>
+                            <div className="employee-form-section-title">Profile</div>
                             <div className="form-field">
                                 <label className="label">Full Name</label>
                                 <input
@@ -377,7 +387,7 @@ export default function EmployeesPage() {
                                     />
                                 </div>
                                 <div className="form-field">
-                                    <label className="label">Daily Rate</label>
+                                    <label className="label">Current Daily Rate</label>
                                     <div className="flex gap-2">
                                         <input
                                             required
@@ -402,7 +412,7 @@ export default function EmployeesPage() {
                                 </div>
                             </div>
 
-                            {/* Secondary Roles Section */}
+                            <div className="employee-form-section-title">Roles & Rates</div>
                             <div className="form-field border-t border-gray-100 pt-4">
                                 <div className="flex justify-between items-center mb-2">
                                     <label className="label text-sm font-semibold text-gray-500">Secondary Roles (Optional)</label>
@@ -462,6 +472,7 @@ export default function EmployeesPage() {
                                 ))}
                             </div>
 
+                            <div className="employee-form-section-title">Contact</div>
                             <div className="form-field">
                                 <label className="label">Mobile Number</label>
                                 <input
@@ -571,7 +582,7 @@ export default function EmployeesPage() {
                 </div>
             )}
 
-            <div className="workbench-panel mb-6">
+            <div className="workbench-panel employees-workbench mb-6">
                 <div className="workbench-header">
                     <div>
                         <h2 className="workbench-title">Workforce Directory</h2>
@@ -579,15 +590,28 @@ export default function EmployeesPage() {
                             Showing {filteredEmployees.length} of {employeesByStatus.length} employees
                         </p>
                     </div>
-                    <div className="search-box" style={{ minWidth: 320 }}>
-                        <Search size={18} className="text-[var(--color-text-muted)]" />
-                        <input
-                            type="text"
-                            placeholder="Search name, role, or NIC..."
-                            className="input"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
+                    <div className="employees-directory-controls">
+                        <div className="search-box employees-search-box">
+                            <Search size={18} className="text-[var(--color-text-muted)]" />
+                            <input
+                                type="text"
+                                placeholder="Search name, role, or NIC..."
+                                className="input"
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <select
+                            className="input employees-role-filter"
+                            value={selectedRole}
+                            onChange={e => setSelectedRole(e.target.value)}
+                            aria-label="Filter employees by role"
+                        >
+                            <option value="all">All roles</option>
+                            {roleOptions.map(role => (
+                                <option key={role} value={role}>{role}</option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
@@ -601,7 +625,7 @@ export default function EmployeesPage() {
                         </div>
                         </div>
                     ) : (
-                        <div className="table-container">
+                        <div className="table-container employees-table-container">
                             <table>
                                 <thead>
                                     <tr>
@@ -615,8 +639,8 @@ export default function EmployeesPage() {
                                 </thead>
                                 <tbody>
                                     {filteredEmployees.map(emp => (
-                                        <tr key={emp.id} className={!emp.active ? 'employee-row-inactive' : ''}>
-                                            <td>
+                                        <tr key={emp.id} className={`employees-table-row ${!emp.active ? 'employee-row-inactive' : ''}`}>
+                                            <td data-label="Employee">
                                                 <div className="employee-cell">
                                                     <div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>
                                                     <div className="min-w-0">
@@ -625,7 +649,7 @@ export default function EmployeesPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Roles">
                                                 <div className="pill-row">
                                                     <span className="role-pill">{emp.role}</span>
                                                     {emp.additionalRoles?.map(role => (
@@ -633,7 +657,7 @@ export default function EmployeesPage() {
                                                     ))}
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Contact">
                                                 <div className="subtle-stack">
                                                     <div className="subtle-line">
                                                         <Phone size={13} />
@@ -645,25 +669,26 @@ export default function EmployeesPage() {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Current Rate">
                                                 <span className="rate-chip">
-                                                    <span>Rate</span>
+                                                    <span>Current</span>
                                                     {emp.dailyRate}
                                                 </span>
                                             </td>
-                                            <td>
+                                            <td data-label="Status">
                                                 <span className={`badge ${emp.active ? 'badge-active' : 'badge-inactive'}`}>
                                                     {emp.active ? 'Active' : 'Inactive'}
                                                 </span>
                                             </td>
-                                            <td className="text-center">
-                                                <div className="flex justify-center gap-2">
+                                            <td className="text-center" data-label="Actions">
+                                                <div className="employees-row-actions">
                                                     <button
                                                         onClick={() => handleEdit(emp)}
-                                                        className="btn btn-info btn-icon"
+                                                        className="btn btn-info btn-sm"
                                                         title="Edit employee"
                                                     >
                                                         <Edit size={16} />
+                                                        Edit
                                                     </button>
                                                     {emp.active ? (
                                                         <button
