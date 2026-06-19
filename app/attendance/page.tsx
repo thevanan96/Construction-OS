@@ -72,7 +72,7 @@ export default function AttendancePage() {
     const { employees, attendance, payments, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, addPayment, deletePayment, sites } = useApp();
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [searchQuery, setSearchQuery] = useState('');
-    const [attendanceView, setAttendanceView] = useState<AttendanceView>('card');
+    const [attendanceView, setAttendanceView] = useState<AttendanceView>('quick');
     const [quickFilter, setQuickFilter] = useState<QuickFilter>('not-marked');
     const [employeeSites, setEmployeeSites] = useState<Record<string, string>>({});
     const [employeeRoles, setEmployeeRoles] = useState<Record<string, string>>({});
@@ -99,6 +99,7 @@ export default function AttendancePage() {
     const absentCount = employeeDayStats.filter(item => item.hasAbsentOnly).length;
     const totalHours = activeTodaysRecords.reduce((sum, record) => sum + getAttendanceHours(record), 0);
     const completionPercent = activeEmployees.length ? Math.round((markedCount / activeEmployees.length) * 100) : 0;
+    const notMarkedCount = Math.max(0, activeEmployees.length - markedCount);
 
     const handleDateChange = (days: number) => {
         const date = new Date(selectedDate);
@@ -254,6 +255,11 @@ export default function AttendancePage() {
     };
 
     const markAllPresent = () => {
+        if (activeEmployees.length === 0) return;
+
+        const confirmed = confirm(`Mark all ${activeEmployees.length} active employees as present on ${selectedDate}?`);
+        if (!confirmed) return;
+
         activeEmployees.forEach(employee => setStatus(employee, 'present'));
     };
 
@@ -273,47 +279,15 @@ export default function AttendancePage() {
 
     return (
         <div className="shell attendance-page">
-            <div className="page-header flex-col md:flex-row gap-4 items-start md:items-end">
+            <div className="page-header attendance-header flex-col md:flex-row gap-4 items-start md:items-end">
                 <div>
                     <div className="page-kicker">Daily log</div>
                     <h1 className="page-title">Attendance</h1>
-                    <p className="page-subtitle">Mark roles, sites, hours, and status for each worker.</p>
+                    <p className="page-subtitle">Quickly mark today&apos;s crew, then open detailed entry only when shifts need edits.</p>
                 </div>
 
-                <div className="toolbar">
-                    <div className="site-filter-tabs attendance-view-tabs" role="tablist" aria-label="Attendance view">
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={attendanceView === 'card'}
-                            className={`site-filter-tab ${attendanceView === 'card' ? 'active' : ''}`}
-                            onClick={() => setAttendanceView('card')}
-                        >
-                            Card View
-                        </button>
-                        <button
-                            type="button"
-                            role="tab"
-                            aria-selected={attendanceView === 'quick'}
-                            className={`site-filter-tab ${attendanceView === 'quick' ? 'active' : ''}`}
-                            onClick={() => setAttendanceView('quick')}
-                        >
-                            Quick View
-                        </button>
-                    </div>
-
-                    <div className="search-box">
-                        <Search className="text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            placeholder="Search employee..."
-                            className="input"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="date-control">
+                <div className="toolbar attendance-header-toolbar">
+                    <div className="date-control attendance-date-control">
                         <button onClick={() => handleDateChange(-1)} className="icon-button" type="button" aria-label="Previous day">
                             <ChevronLeft size={20} />
                         </button>
@@ -327,6 +301,38 @@ export default function AttendancePage() {
                             <ChevronRight size={20} />
                         </button>
                     </div>
+
+                    <div className="search-box attendance-search-box">
+                        <Search className="text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Search employee..."
+                            className="input"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="site-filter-tabs attendance-view-tabs" role="tablist" aria-label="Attendance view">
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={attendanceView === 'card'}
+                            className={`site-filter-tab ${attendanceView === 'card' ? 'active' : ''}`}
+                            onClick={() => setAttendanceView('card')}
+                        >
+                            Detailed View
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            aria-selected={attendanceView === 'quick'}
+                            className={`site-filter-tab ${attendanceView === 'quick' ? 'active' : ''}`}
+                            onClick={() => setAttendanceView('quick')}
+                        >
+                            Quick Mark
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -336,7 +342,9 @@ export default function AttendancePage() {
                         <div>
                             <div className="page-kicker">Completion</div>
                             <h2 className="text-xl font-bold">{completionPercent}% marked</h2>
-                            <p className="page-subtitle">{markedCount} of {activeEmployees.length} employees marked</p>
+                            <p className="page-subtitle">
+                                <strong>{markedCount} of {activeEmployees.length}</strong> employees marked
+                            </p>
                         </div>
                         <div className="soft-icon">
                             <CalendarDays size={20} />
@@ -347,6 +355,7 @@ export default function AttendancePage() {
                     </div>
                 </div>
                 <AttendanceStat label="Present" value={presentCount} icon={UserCheck} tone="success" />
+                <AttendanceStat label="Not Marked" value={notMarkedCount} icon={Search} tone="warning" />
                 <AttendanceStat label="Half Day" value={halfDayCount} icon={Clock} tone="warning" />
                 <AttendanceStat label="Absent" value={absentCount} icon={X} tone="danger" />
                 <AttendanceStat label="Hours" value={totalHours.toFixed(1)} icon={Timer} tone="info" />
@@ -356,8 +365,8 @@ export default function AttendancePage() {
                 <div className="workbench-panel attendance-quick-panel">
                     <div className="workbench-header">
                         <div>
-                            <h2 className="workbench-title">Quick Attendance</h2>
-                            <p className="workbench-meta">{markedCount} of {activeEmployees.length} employees marked</p>
+                            <h2 className="workbench-title">Quick Mark</h2>
+                            <p className="workbench-meta">{markedCount} of {activeEmployees.length} employees marked, {notMarkedCount} not marked</p>
                         </div>
                         <div className="toolbar attendance-quick-toolbar">
                             <div className="site-filter-tabs attendance-filter-tabs" role="tablist" aria-label="Filter attendance records">
@@ -381,7 +390,7 @@ export default function AttendancePage() {
                                 disabled={activeEmployees.length === 0}
                             >
                                 <Check size={16} />
-                                Mark All Present
+                                Mark All Active Present
                             </button>
                         </div>
                     </div>
@@ -417,8 +426,8 @@ export default function AttendancePage() {
                                             const statusMeta = getStatusMeta(records, totalEmployeeHours);
 
                                             return (
-                                                <tr key={emp.id}>
-                                                    <td>
+                                                <tr key={emp.id} className="attendance-quick-row">
+                                                    <td data-label="Employee">
                                                         <div className="employee-cell">
                                                             <div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>
                                                             <div className="min-w-0">
@@ -427,7 +436,7 @@ export default function AttendancePage() {
                                                             </div>
                                                         </div>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Role">
                                                         <select
                                                             value={selectedRole}
                                                             onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [emp.id]: e.target.value }))}
@@ -439,7 +448,7 @@ export default function AttendancePage() {
                                                             ))}
                                                         </select>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Site">
                                                         <select
                                                             className="input attendance-quick-select"
                                                             value={selectedSite}
@@ -452,7 +461,7 @@ export default function AttendancePage() {
                                                             ))}
                                                         </select>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Status">
                                                         <div className="attendance-quick-status-cell">
                                                             <span className={statusMeta.className}>{statusMeta.label}</span>
                                                             <div className="attendance-quick-status-actions">
@@ -565,10 +574,10 @@ export default function AttendancePage() {
                                         <button
                                             onClick={() => setStatus(emp, 'present')}
                                             className={`btn btn-attendance ${totalEmployeeHours >= 10.5 ? 'active-present' : ''}`}
-                                            title="Full Day"
+                                            title="Present"
                                         >
                                             <Check size={14} />
-                                            <span>Full Day</span>
+                                            <span>Present</span>
                                         </button>
 
                                         <button
@@ -583,10 +592,10 @@ export default function AttendancePage() {
                                         <button
                                             onClick={() => setStatus(emp, 'absent')}
                                             className={`btn btn-attendance ${isAbsentOnly ? 'active-absent' : ''}`}
-                                            title="Reset"
+                                            title="Absent"
                                         >
                                             <X size={14} />
-                                            <span>Reset</span>
+                                            <span>Absent</span>
                                         </button>
                                     </div>
 
@@ -676,7 +685,7 @@ export default function AttendancePage() {
                                     <form className="attendance-advance-form" onSubmit={(event) => recordAdvancePayment(event, emp)}>
                                         <div className="attendance-advance-entry">
                                             <label>
-                                                <span>Advance</span>
+                                                <span>Advance Amount</span>
                                                 <input
                                                     type="number"
                                                     className="input"
@@ -695,7 +704,7 @@ export default function AttendancePage() {
                                         {paidAdvance > 0 && (
                                             <div className="attendance-advance-paid">
                                                 <div className="attendance-advance-paid-copy">
-                                                    <span>Paid advance</span>
+                                                    <span>Advance Paid</span>
                                                     <strong>{paidAdvance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
                                                 </div>
                                                 <button
