@@ -1,6 +1,6 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { BarChart3, CalendarCheck, CheckCircle2, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { PublicHeader } from '@/components/PublicHeader';
 
 const featureCards = [
   {
@@ -28,21 +28,7 @@ const featureCards = [
 export default function FeaturesPage() {
   return (
     <div className="auth-landing features-page">
-      <header className="auth-topbar">
-        <Link href="/" className="auth-wordmark">
-          <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
-          <span>SiteTrack</span>
-        </Link>
-        <nav className="auth-nav" aria-label="Product">
-          <Link href="/#product">Product</Link>
-          <Link href="/#workflow">Workflow</Link>
-          <Link href="/#pricing">Pricing</Link>
-          <Link href="/#about">About</Link>
-          <Link href="/contact">Contact</Link>
-          <Link href="/login">Sign in</Link>
-          <Link href="/signup" className="auth-nav-cta">Create account</Link>
-        </nav>
-      </header>
+      <PublicHeader />
 
       <main className="features-hero">
         <section className="features-intro">

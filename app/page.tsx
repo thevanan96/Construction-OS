@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { PublicHeader } from '@/components/PublicHeader';
 import {
   CalendarCheck,
   ClipboardList,
@@ -14,60 +15,47 @@ import {
 const productCards = [
   {
     icon: Users,
-    title: 'Employee records',
-    text: 'Keep crew profiles, roles, rates, contact details, and active status ready for site operations.',
+    title: 'Crew directory',
+    text: 'Keep worker profiles, roles, rates, contacts, and active status ready for every site day.',
   },
   {
     icon: CalendarCheck,
-    title: 'Attendance tracking',
-    text: 'Mark present, absent, half-day, working hours, and site assignments from one workflow.',
+    title: 'Fast attendance',
+    text: 'Mark present, absent, half-day, hours, and site assignment without chasing spreadsheets.',
   },
   {
     icon: Wallet,
-    title: 'Payment visibility',
-    text: 'Review earned amounts, payments made, and balances before payroll becomes messy.',
+    title: 'Payment clarity',
+    text: 'See earned amounts, paid totals, and open balances before payroll decisions pile up.',
   },
 ];
 
 const workflowSteps = [
-  'Create employee and site records',
-  'Mark daily attendance and hours',
-  'Review salary exposure and payments',
-  'Export operational reports when needed',
+  'Set up crews, roles, rates, and active sites',
+  'Mark daily attendance from the Quick Mark workflow',
+  'Review balances and record salary or advance payments',
+  'Use reports to understand site labor cost',
 ];
 
 export default function LandingPage() {
   return (
     <div className="auth-landing marketing-home">
-      <header className="auth-topbar">
-        <Link href="/" className="auth-wordmark">
-          <Image src="/sitetrack-mark.png" alt="" width={300} height={300} priority />
-          <span>SiteTrack</span>
-        </Link>
-        <nav className="auth-nav" aria-label="Product">
-          <a href="#product">Product</a>
-          <a href="#workflow">Workflow</a>
-          <a href="#pricing">Pricing</a>
-          <a href="#about">About</a>
-          <Link href="/login">Sign in</Link>
-          <Link href="/signup" className="auth-nav-cta">Create account</Link>
-        </nav>
-      </header>
+      <PublicHeader />
 
       <main className="marketing-hero">
         <section className="marketing-copy">
           <div className="hero-badge">
             <ClipboardList size={16} />
-            Construction workforce management
+            SiteTrack for construction teams
           </div>
-          <h1>Site operations, attendance, and payment records in one workspace.</h1>
+          <h1>Modern workforce control for construction site operations.</h1>
           <p>
-            SiteTrack helps construction teams keep daily crew records clean,
-            payroll visibility clear, and site activity organized without spreadsheet chasing.
+            SiteTrack gives owners, supervisors, and site managers a cleaner way to manage crew records,
+            daily attendance, site activity, and payment visibility from one professional workspace.
           </p>
           <div className="hero-actions">
-            <Link href="/signup" className="btn btn-primary btn-large">Start workspace</Link>
-            <a href="#product" className="btn btn-outline btn-large">Explore product</a>
+            <Link href="/signup" className="btn btn-primary btn-large">Create workspace</Link>
+            <a href="#workflow" className="btn btn-outline btn-large">See workflow</a>
           </div>
         </section>
 
@@ -90,11 +78,11 @@ export default function LandingPage() {
                 <strong>48</strong>
               </div>
               <div>
-                <span>Present</span>
-                <strong>42</strong>
+                <span>Attendance</span>
+                <strong>91%</strong>
               </div>
               <div>
-                <span>Balance</span>
+                <span>Open balance</span>
                 <strong>Rs. 186k</strong>
               </div>
             </div>
@@ -105,7 +93,7 @@ export default function LandingPage() {
       <section id="product" className="marketing-section">
         <div className="marketing-section-header">
           <span>Product</span>
-          <h2>Built for the daily rhythm of construction sites.</h2>
+          <h2>A focused SaaS workspace for daily construction operations.</h2>
         </div>
         <div className="marketing-card-grid">
           {productCards.map((item) => {
@@ -127,7 +115,7 @@ export default function LandingPage() {
               width={1792}
               height={1024}
             />
-            <figcaption>Morning check-in with site attendance controls.</figcaption>
+            <figcaption>Morning attendance with site-ready controls.</figcaption>
           </figure>
           <figure>
             <Image
@@ -136,7 +124,7 @@ export default function LandingPage() {
               width={1792}
               height={1024}
             />
-            <figcaption>Site records, reports, and payment visibility in one review flow.</figcaption>
+            <figcaption>Workforce, reports, and payment visibility in one review flow.</figcaption>
           </figure>
         </div>
       </section>
@@ -144,7 +132,7 @@ export default function LandingPage() {
       <section id="workflow" className="marketing-section marketing-split">
         <div className="marketing-section-header">
           <span>Workflow</span>
-          <h2>From morning attendance to payment review.</h2>
+          <h2>From morning site check-in to payment review.</h2>
         </div>
         <div className="workflow-visual-stack">
           <Image
@@ -167,10 +155,10 @@ export default function LandingPage() {
       <section id="pricing" className="marketing-section pricing-panel">
         <div>
           <span>Pricing</span>
-          <h2>Simple workspace setup for construction teams.</h2>
-          <p>Start with the core workforce, attendance, reporting, and payment visibility tools. Custom rollout support can be handled through JTK LABS.</p>
+          <h2>Simple workspace rollout for construction teams.</h2>
+          <p>Start with the core workforce, attendance, reports, and payment visibility tools. For larger teams, JTK LABS can help with setup, onboarding, and workflow adaptation.</p>
         </div>
-        <Link href="/contact" className="btn btn-primary btn-large">Contact JTK LABS</Link>
+        <Link href="/contact" className="btn btn-primary btn-large">Talk to JTK LABS</Link>
       </section>
 
       <section id="about" className="marketing-section about-strip">
@@ -184,7 +172,7 @@ export default function LandingPage() {
           </div>
           <p>
             SiteTrack is built for practical construction workforce management,
-            daily attendance, site records, and payment clarity.
+            daily attendance, site records, reports, and payment clarity.
           </p>
           <div className="about-actions">
             <a href="https://jtklabs.net" target="_blank" rel="noreferrer" className="btn btn-outline btn-large">

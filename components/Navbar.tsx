@@ -13,7 +13,7 @@ const navItems = [
     { name: 'Sites', href: '/sites', icon: Building },
     { name: 'Attendance', href: '/attendance', icon: CalendarCheck },
     { name: 'Reports', href: '/reports', icon: FileText },
-    { name: 'Salary', href: '/salary', icon: Banknote },
+    { name: 'Payments', href: '/salary', icon: Banknote },
     { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
