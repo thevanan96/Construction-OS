@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { BadgeDollarSign, CalendarDays, Clock, Download, Filter, FileText, Users } from 'lucide-react';
+import { BadgeDollarSign, CalendarDays, Clock, Download, Filter, FileText, Package, Users } from 'lucide-react';
 import { calculateAttendanceSegmentCosts } from '@/lib/salary';
 import { downloadCSV } from '@/lib/exportUtils';
+import { formatExpenseCategoryLabel } from '@/lib/types';
 
 export default function ReportsPage() {
-    const { employees, attendance, sites } = useApp();
+    const { employees, attendance, expenses, sites } = useApp();
     const [reportSite, setReportSite] = useState('');
     const [reportStart, setReportStart] = useState('');
     const [reportEnd, setReportEnd] = useState('');
@@ -41,7 +42,14 @@ export default function ReportsPage() {
         const rows = Object.values(employeeCosts).sort((a, b) => b.cost - a.cost);
         const totalHours = rows.reduce((sum, item) => sum + item.hours, 0);
 
-        return { totalCost, employeeCosts, rows, totalHours };
+        const expenseRows = expenses.filter(e =>
+            e.date >= reportStart &&
+            e.date <= reportEnd &&
+            (!reportSite || e.siteId === reportSite)
+        ).sort((a, b) => b.amount - a.amount);
+        const totalExpenses = expenseRows.reduce((sum, e) => sum + e.amount, 0);
+
+        return { totalCost, employeeCosts, rows, totalHours, expenseRows, totalExpenses };
     };
 
     const reportData = calculateReport();
@@ -65,13 +73,33 @@ export default function ReportsPage() {
         );
     };
 
+    const handleExportExpensesCSV = () => {
+        if (!reportData) return;
+
+        const rows: (string | number)[][] = reportData.expenseRows.map(expense => [
+            expense.date.split('T')[0],
+            formatExpenseCategoryLabel(expense.category),
+            expense.description,
+            expense.vendor || '',
+            expense.amount.toFixed(2),
+        ]);
+        rows.push(['', '', '', 'Total', reportData.totalExpenses.toFixed(2)]);
+
+        const siteSlug = selectedSiteName.replace(/\s+/g, '-').toLowerCase();
+        downloadCSV(
+            `expense-report_${siteSlug}_${reportStart}_to_${reportEnd}.csv`,
+            ['Date', 'Category', 'Description', 'Vendor', 'Amount'],
+            rows
+        );
+    };
+
     return (
         <div className="shell reports-page">
             <div className="page-header reports-header">
                 <div>
                     <div className="page-kicker">Analysis</div>
                     <h1 className="page-title">Reports</h1>
-                    <p className="page-subtitle">Analyze labor hours and cost contribution by site and date range.</p>
+                    <p className="page-subtitle">Analyze labor and expense costs by site and date range.</p>
                 </div>
             </div>
 
@@ -125,15 +153,20 @@ export default function ReportsPage() {
                 <div className="reports-results">
                     <div className="reports-summary-panel mb-8">
                         <div>
-                            <p>Total Labor Cost</p>
-                            <strong>{reportData.totalCost.toLocaleString()}</strong>
+                            <p>Total Site Cost</p>
+                            <strong>{(reportData.totalCost + reportData.totalExpenses).toLocaleString()}</strong>
                             <span>{selectedSiteName} · {reportStart} to {reportEnd}</span>
                         </div>
                         <div className="reports-summary-grid">
                             <div>
                                 <BadgeDollarSign size={18} />
-                                <span>Cost</span>
+                                <span>Labor Cost</span>
                                 <strong>{reportData.totalCost.toLocaleString()}</strong>
+                            </div>
+                            <div>
+                                <Package size={18} />
+                                <span>Expenses</span>
+                                <strong>{reportData.totalExpenses.toLocaleString()}</strong>
                             </div>
                             <div>
                                 <Clock size={18} />
@@ -186,6 +219,52 @@ export default function ReportsPage() {
                                     {reportData.rows.length === 0 && (
                                         <tr>
                                             <td colSpan={3} className="text-center py-8 text-gray-400">No work records found for this period.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className="panel reports-breakdown-panel mt-8">
+                        <div className="section-header mb-4">
+                            <div>
+                                <h3 className="text-xl font-bold">Expense Breakdown</h3>
+                                <p className="page-subtitle">Materials, equipment, and subcontractor costs for this period.</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button type="button" className="btn btn-outline btn-sm" onClick={handleExportExpensesCSV} disabled={reportData.expenseRows.length === 0}>
+                                    <Download size={16} />
+                                    Export CSV
+                                </button>
+                                <div className="soft-icon primary">
+                                    <Package size={20} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="table-container reports-table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Description</th>
+                                        <th className="text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {reportData.expenseRows.map(expense => (
+                                        <tr key={expense.id} className="reports-table-row">
+                                            <td className="font-mono text-sm">{expense.date.split('T')[0]}</td>
+                                            <td className="text-sm">{formatExpenseCategoryLabel(expense.category)}</td>
+                                            <td className="text-sm text-gray-600">{expense.description}</td>
+                                            <td className="text-right font-mono font-bold text-blue-700">{expense.amount.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                    {reportData.expenseRows.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="text-center py-8 text-gray-400">No expenses recorded for this period.</td>
                                         </tr>
                                     )}
                                 </tbody>

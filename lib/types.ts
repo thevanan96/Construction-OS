@@ -48,6 +48,32 @@ export interface Payment {
     receiptPath?: string;
 }
 
+// Free-form: 'materials' | 'equipment' | 'subcontractor' | 'other' are the built-in defaults
+// (see DEFAULT_EXPENSE_CATEGORIES), but users can add their own custom category names too.
+export type ExpenseCategory = string;
+
+export const DEFAULT_EXPENSE_CATEGORIES = ['materials', 'equipment', 'subcontractor', 'other'] as const;
+
+export function formatExpenseCategoryLabel(category: string): string {
+    return category
+        .split(/[\s_-]+/)
+        .filter(Boolean)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ') || category;
+}
+
+export interface Expense {
+    id: string;
+    siteId: string;
+    category: ExpenseCategory;
+    description: string;
+    amount: number;
+    date: string;
+    vendor?: string;
+    notes?: string;
+    receiptPath?: string;
+}
+
 export interface User {
     id: string;
     name: string;
