@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { useApp } from '@/lib/store';
 import { BadgeCheck, BriefcaseBusiness, Camera, Edit, Loader2, Phone, Plus, RotateCcw, Search, Trash2, TrendingUp, User, UserX, Users, X } from 'lucide-react';
 import { Employee } from '@/lib/types';
-import { uploadAttachment, validateAttachmentFile } from '@/lib/storage';
+import { removeAttachment, uploadAttachment, validateAttachmentFile } from '@/lib/storage';
 import { AttachmentImage } from '@/components/AttachmentImage';
 
 type EmployeeFilter = 'active' | 'inactive' | 'all';
@@ -14,6 +14,7 @@ export default function EmployeesPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+    const [initialPhotoPath, setInitialPhotoPath] = useState<string | undefined>(undefined);
     const photoInputRef = useRef<HTMLInputElement>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,6 +58,7 @@ export default function EmployeesPage() {
         });
         setEditingId(null);
         setPhotoPreviewUrl(null);
+        setInitialPhotoPath(undefined);
     };
 
     const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,6 +70,12 @@ export default function EmployeesPage() {
         if (validationError) {
             alert(validationError);
             return;
+        }
+
+        // Clean up a previous not-yet-saved upload from this same modal session
+        // (e.g. the user picked a photo, then picked a different one before saving).
+        if (formData.photoPath && formData.photoPath !== initialPhotoPath) {
+            removeAttachment('employee-photos', formData.photoPath).catch(err => console.error('Error removing replaced photo:', err));
         }
 
         setPhotoPreviewUrl(URL.createObjectURL(file));
@@ -82,6 +90,11 @@ export default function EmployeesPage() {
         } finally {
             setIsUploadingPhoto(false);
         }
+    };
+
+    const handleRemovePhoto = () => {
+        setFormData(prev => ({ ...prev, photoPath: undefined }));
+        setPhotoPreviewUrl(null);
     };
 
     const handleOpenAdd = () => {
@@ -103,7 +116,17 @@ export default function EmployeesPage() {
             photoPath: emp.photoPath
         });
         setPhotoPreviewUrl(null);
+        setInitialPhotoPath(emp.photoPath);
         setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        // If a new photo was uploaded this session but never saved, clean it up
+        // rather than leaving it orphaned in storage. The original (if any) is untouched.
+        if (formData.photoPath && formData.photoPath !== initialPhotoPath) {
+            removeAttachment('employee-photos', formData.photoPath).catch(err => console.error('Error cleaning up unsaved photo:', err));
+        }
+        setIsModalOpen(false);
     };
 
     const handleAddRole = () => {
@@ -141,15 +164,23 @@ export default function EmployeesPage() {
             photoPath: formData.photoPath
         };
 
+        let saved = true;
         if (editingId) {
             // Update
-            await updateEmployee(editingId, employeeData);
+            saved = await updateEmployee(editingId, employeeData);
         } else {
             // Add
             await addEmployee({
                 ...employeeData,
                 active: true,
             });
+        }
+
+        // Only clean up the old photo once the DB write actually succeeded — otherwise
+        // the DB still points at it (e.g. save failed/rolled back) and deleting it here
+        // would leave a broken reference.
+        if (saved && initialPhotoPath && initialPhotoPath !== formData.photoPath) {
+            removeAttachment('employee-photos', initialPhotoPath).catch(err => console.error('Error removing old photo:', err));
         }
 
         setIsModalOpen(false);
@@ -391,7 +422,7 @@ export default function EmployeesPage() {
                                 <h2 className="modal-title">{editingId ? 'Edit Employee' : 'Add New Employee'}</h2>
                                 <p className="modal-subtitle">Keep workforce records accurate for attendance and payroll.</p>
                             </div>
-                            <button onClick={() => setIsModalOpen(false)} className="icon-button" type="button">
+                            <button onClick={handleCloseModal} className="icon-button" type="button">
                                 <X size={24} />
                             </button>
                         </div>
@@ -425,14 +456,25 @@ export default function EmployeesPage() {
                                         )}
                                     </button>
                                     <div>
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline btn-sm"
-                                            onClick={() => photoInputRef.current?.click()}
-                                            disabled={isUploadingPhoto}
-                                        >
-                                            {formData.photoPath ? 'Replace Photo' : 'Upload Photo'}
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button
+                                                type="button"
+                                                className="btn btn-outline btn-sm"
+                                                onClick={() => photoInputRef.current?.click()}
+                                                disabled={isUploadingPhoto}
+                                            >
+                                                {formData.photoPath ? 'Replace Photo' : 'Upload Photo'}
+                                            </button>
+                                            {formData.photoPath && !isUploadingPhoto && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-danger-subtle btn-sm"
+                                                    onClick={handleRemovePhoto}
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
                                         <p className="helper-text">JPEG, PNG or WebP, up to 5MB.</p>
                                     </div>
                                     <input
@@ -593,7 +635,7 @@ export default function EmployeesPage() {
                             <div className="flex justify-end gap-2 mt-6">
                                 <button
                                     type="button"
-                                    onClick={() => setIsModalOpen(false)}
+                                    onClick={handleCloseModal}
                                     className="btn btn-outline"
                                 >
                                     Cancel

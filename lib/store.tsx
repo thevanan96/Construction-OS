@@ -23,14 +23,14 @@ interface AppContextType {
     isOffline: boolean;
     pendingSyncCount: number;
     addEmployee: (employee: Omit<Employee, 'id'>) => Promise<void>;
-    updateEmployee: (id: string, data: Partial<Employee>) => Promise<void>;
+    updateEmployee: (id: string, data: Partial<Employee>) => Promise<boolean>;
     deleteEmployee: (id: string) => Promise<void>;
     markAttendance: (record: Omit<Attendance, 'id'>) => Promise<void>;
     addAttendanceSegment: (record: Omit<Attendance, 'id'>) => Promise<void>;
     updateAttendanceSegment: (id: string, data: Partial<Attendance>) => Promise<void>;
     deleteAttendanceSegment: (id: string) => Promise<void>;
     addPayment: (payment: Omit<Payment, 'id'>) => Promise<void>;
-    updatePayment: (id: string, data: Partial<Payment>) => Promise<void>;
+    updatePayment: (id: string, data: Partial<Payment>) => Promise<boolean>;
     deletePayment: (id: string) => Promise<void>;
     addSite: (site: Omit<Site, 'id'>) => Promise<void>;
     updateSite: (id: string, data: Partial<Site>) => Promise<void>;
@@ -311,8 +311,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const updateEmployee = async (id: string, data: Partial<Employee>) => {
-        if (!user) return;
+    const updateEmployee = async (id: string, data: Partial<Employee>): Promise<boolean> => {
+        if (!user) return false;
 
         const previousEmployees = [...employees];
 
@@ -331,7 +331,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.active !== undefined) updates.status = data.active ? 'active' : 'inactive';
         if (data.phone !== undefined) updates.phone = data.phone;
         if (data.nic !== undefined) updates.nic = data.nic;
-        if (data.photoPath !== undefined) updates.photo_path = data.photoPath || null;
+        // 'in' (not !== undefined): callers signal "clear the photo" with an explicit
+        // `photoPath: undefined` key, which must be distinguishable from "field not touched".
+        if ('photoPath' in data) updates.photo_path = data.photoPath || null;
 
         const { error } = await supabase.from('employees').update(updates).eq('id', id);
 
@@ -339,7 +341,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             console.error('Update Employee Error:', error);
             alert('Failed to update employee: ' + error.message);
             setEmployees(previousEmployees);
+            return false;
         }
+        return true;
     };
 
     const deleteEmployee = async (id: string) => {
@@ -592,8 +596,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const updatePayment = async (id: string, data: Partial<Payment>) => {
-        if (!user) return;
+    const updatePayment = async (id: string, data: Partial<Payment>): Promise<boolean> => {
+        if (!user) return false;
 
         const previousPayments = [...payments];
 
@@ -605,7 +609,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.date) updates.date = data.date;
         if (data.type) updates.type = data.type;
         if (data.notes !== undefined) updates.notes = data.notes;
-        if (data.receiptPath !== undefined) updates.receipt_path = data.receiptPath || null;
+        // 'in' (not !== undefined): callers signal "clear the receipt" with an explicit
+        // `receiptPath: undefined` key, which must be distinguishable from "field not touched".
+        if ('receiptPath' in data) updates.receipt_path = data.receiptPath || null;
 
         const { error } = await supabase.from('payments').update(updates).eq('id', id);
 
@@ -613,7 +619,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             console.error('Update Payment Error:', error);
             alert('Failed to update payment: ' + error.message);
             setPayments(previousPayments);
+            return false;
         }
+        return true;
     };
 
     const deletePayment = async (id: string) => {
