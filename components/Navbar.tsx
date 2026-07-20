@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut, FileText, Menu, RefreshCw, Settings, WifiOff, X } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut, FileText, Menu, Package, RefreshCw, Settings, WifiOff, X } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
     { name: 'Employees', href: '/employees', icon: Users },
     { name: 'Sites', href: '/sites', icon: Building },
     { name: 'Attendance', href: '/attendance', icon: CalendarCheck },
+    { name: 'Expenses', href: '/expenses', icon: Package },
     { name: 'Reports', href: '/reports', icon: FileText },
     { name: 'Payments', href: '/salary', icon: Banknote },
     { name: 'Settings', href: '/settings', icon: Settings },

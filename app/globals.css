@@ -5304,7 +5304,7 @@ canvas {
 
 .reports-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -5729,4 +5729,52 @@ canvas {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* Expenses */
+
+.expenses-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.expenses-filter-row .search-box {
+  min-width: 220px;
+}
+
+.expense-category-materials {
+  border-color: var(--color-info-soft);
+  background: var(--color-info-soft);
+  color: var(--color-info);
+}
+
+.expense-category-equipment {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.expense-category-subcontractor {
+  border-color: var(--color-success-border);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.expense-category-other,
+.expense-category-custom {
+  border-color: var(--color-neutral-border);
+  background: var(--color-neutral-bg);
+  color: var(--color-neutral);
+}
+
+@media (max-width: 900px) {
+  .expenses-filter-row {
+    width: 100%;
+  }
+
+  .expenses-filter-row .search-box {
+    flex: 1 1 100%;
+  }
 }

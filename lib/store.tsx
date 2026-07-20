@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Employee, Attendance, AttendanceStatus, Payment, Site, User } from './types';
+import { Employee, Attendance, AttendanceStatus, Expense, Payment, Site, User } from './types';
 import { useRouter } from 'next/navigation';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
@@ -17,6 +17,7 @@ interface AppContextType {
     employees: Employee[];
     attendance: Attendance[];
     payments: Payment[];
+    expenses: Expense[];
     sites: Site[];
     user: User | null;
     isLoading: boolean;
@@ -35,6 +36,9 @@ interface AppContextType {
     addSite: (site: Omit<Site, 'id'>) => Promise<void>;
     updateSite: (id: string, data: Partial<Site>) => Promise<void>;
     removeSite: (id: string) => Promise<void>;
+    addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+    updateExpense: (id: string, data: Partial<Expense>) => Promise<boolean>;
+    deleteExpense: (id: string) => Promise<void>;
     updateProfile: (data: Pick<User, 'name' | 'companyName'>) => Promise<void>;
     logout: () => void;
 }
@@ -138,6 +142,32 @@ function mapPaymentRow(p: PaymentRow): Payment {
     };
 }
 
+type ExpenseRow = {
+    id: string;
+    site_id: string;
+    category: string;
+    description: string;
+    amount: number;
+    date: string;
+    vendor?: string | null;
+    notes?: string | null;
+    receipt_path?: string | null;
+};
+
+function mapExpenseRow(e: ExpenseRow): Expense {
+    return {
+        id: e.id,
+        siteId: e.site_id,
+        category: e.category,
+        description: e.description,
+        amount: e.amount,
+        date: e.date,
+        vendor: e.vendor || undefined,
+        notes: e.notes || undefined,
+        receiptPath: e.receipt_path || undefined
+    };
+}
+
 function buildAttendanceUpdates(data: Partial<Attendance>): Record<string, unknown> {
     const updates: Record<string, unknown> = {};
     if (data.status) updates.status = data.status;
@@ -156,6 +186,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [attendance, setAttendance] = useState<Attendance[]>([]);
     const [payments, setPayments] = useState<Payment[]>([]);
+    const [expenses, setExpenses] = useState<Expense[]>([]);
     const [sites, setSites] = useState<Site[]>([]);
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -168,12 +199,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             { data: empData },
             { data: siteData },
             { data: attData },
-            { data: payData }
+            { data: payData },
+            { data: expData }
         ] = await Promise.all([
             supabase.from('employees').select('*').order('created_at', { ascending: false }),
             supabase.from('sites').select('*').order('created_at', { ascending: false }),
             supabase.from('attendance').select('*').order('date', { ascending: false }),
-            supabase.from('payments').select('*').order('date', { ascending: false })
+            supabase.from('payments').select('*').order('date', { ascending: false }),
+            supabase.from('expenses').select('*').order('date', { ascending: false })
         ]);
 
         if (empData) {
@@ -190,6 +223,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (payData) {
             setPayments(payData.map(mapPaymentRow));
+        }
+
+        if (expData) {
+            setExpenses(expData.map(mapExpenseRow));
         }
     }
 
@@ -226,6 +263,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setEmployees([]);
                 setAttendance([]);
                 setPayments([]);
+                setExpenses([]);
                 setSites([]);
             }
             setIsLoading(false);
@@ -829,6 +867,92 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const addExpense = async (data: Omit<Expense, 'id'>) => {
+        if (!user) return;
+
+        const previousExpenses = [...expenses];
+        const tempId = 'temp-' + Date.now();
+
+        // Optimistic
+        setExpenses(prev => [{
+            id: tempId,
+            siteId: data.siteId,
+            category: data.category,
+            description: data.description,
+            amount: data.amount,
+            date: data.date,
+            vendor: data.vendor,
+            notes: data.notes,
+            receiptPath: data.receiptPath
+        }, ...prev]);
+
+        const { data: inserted, error } = await supabase.from('expenses').insert({
+            user_id: user.id,
+            site_id: data.siteId,
+            category: data.category,
+            description: data.description,
+            amount: data.amount,
+            date: data.date,
+            vendor: data.vendor,
+            notes: data.notes,
+            receipt_path: data.receiptPath || null
+        }).select().single();
+
+        if (error || !inserted) {
+            console.error('Error adding expense:', error);
+            alert('Failed to add expense: ' + error?.message);
+            setExpenses(previousExpenses);
+        } else {
+            setExpenses(prev => prev.map(e => e.id === tempId ? mapExpenseRow(inserted) : e));
+        }
+    };
+
+    const updateExpense = async (id: string, data: Partial<Expense>): Promise<boolean> => {
+        if (!user) return false;
+
+        const previousExpenses = [...expenses];
+
+        // Optimistic Update
+        setExpenses(prev => prev.map(e => e.id === id ? { ...e, ...data } : e));
+
+        const updates: Record<string, unknown> = {};
+        if (data.siteId) updates.site_id = data.siteId;
+        if (data.category) updates.category = data.category;
+        if (data.description) updates.description = data.description;
+        if (data.amount !== undefined) updates.amount = data.amount;
+        if (data.date) updates.date = data.date;
+        if (data.vendor !== undefined) updates.vendor = data.vendor;
+        if (data.notes !== undefined) updates.notes = data.notes;
+        // 'in' (not !== undefined): callers signal "clear the receipt" with an explicit
+        // `receiptPath: undefined` key, which must be distinguishable from "field not touched".
+        if ('receiptPath' in data) updates.receipt_path = data.receiptPath || null;
+
+        const { error } = await supabase.from('expenses').update(updates).eq('id', id);
+
+        if (error) {
+            console.error('Update Expense Error:', error);
+            alert('Failed to update expense: ' + error.message);
+            setExpenses(previousExpenses);
+            return false;
+        }
+        return true;
+    };
+
+    const deleteExpense = async (id: string) => {
+        if (!user) return;
+
+        const previousExpenses = [...expenses];
+        setExpenses(prev => prev.filter(e => e.id !== id));
+
+        const { error } = await supabase.from('expenses').delete().eq('id', id);
+
+        if (error) {
+            console.error('Delete Expense Error:', error);
+            alert('Failed to delete expense: ' + error.message);
+            setExpenses(previousExpenses);
+        }
+    };
+
     const updateProfile = async (data: Pick<User, 'name' | 'companyName'>) => {
         if (!user) return;
 
@@ -877,6 +1001,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setEmployees([]);
         setAttendance([]);
         setPayments([]);
+        setExpenses([]);
         setSites([]);
 
         // 2. Clear Supabase session (fire and forget)
@@ -889,8 +1014,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AppContext.Provider value={{
-            employees, attendance, payments, sites, user, isLoading, isOffline, pendingSyncCount,
+            employees, attendance, payments, expenses, sites, user, isLoading, isOffline, pendingSyncCount,
             addEmployee, updateEmployee, deleteEmployee, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, addPayment, updatePayment, deletePayment, addSite, updateSite, removeSite,
+            addExpense, updateExpense, deleteExpense,
             updateProfile,
             logout
         }}>

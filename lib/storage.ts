@@ -1,11 +1,12 @@
 import { supabase } from './supabase';
 
-export type AttachmentBucket = 'employee-photos' | 'payment-receipts';
+export type AttachmentBucket = 'employee-photos' | 'payment-receipts' | 'expense-receipts';
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES: Record<AttachmentBucket, string[]> = {
     'employee-photos': ['image/jpeg', 'image/png', 'image/webp'],
     'payment-receipts': ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+    'expense-receipts': ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
 };
 
 export function validateAttachmentFile(bucket: AttachmentBucket, file: File): string | null {
