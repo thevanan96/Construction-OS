@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useApp } from '@/lib/store';
-import { AlertTriangle, BadgeDollarSign, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileText, Pencil, Search, Timer, Trash2, Wallet, X } from 'lucide-react';
-import { getSriLankaDate } from '@/lib/dateUtils';
+import { AlertTriangle, BadgeDollarSign, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, Pencil, Receipt, Search, Timer, Trash2, Wallet, X } from 'lucide-react';
+import { getCurrentMonthRange, getSriLankaDate } from '@/lib/dateUtils';
 import { Employee } from '@/lib/types';
 import { calculateAttendanceRecordsEarnings, calculateAttendanceSegmentCosts, getAttendanceHours } from '@/lib/salary';
+import { downloadCSV } from '@/lib/exportUtils';
 
 const formatPaymentType = (type?: string) => {
     if (type === 'advance') return 'Advance';
@@ -74,6 +76,7 @@ export default function SalaryPage() {
         setPayAmount('');
     };
 
+    const currentMonthRange = getCurrentMonthRange();
     const activeEmployee = selectedEmployee ? employees.find(e => e.id === selectedEmployee) : null;
     const detailsEmployee = viewDetailsEmployee ? employees.find(e => e.id === viewDetailsEmployee) : null;
     const employeeFinancials = employees.map(employee => ({
@@ -90,6 +93,36 @@ export default function SalaryPage() {
     const totalEarnedAll = employeeFinancials.reduce((sum, item) => sum + item.financials.totalEarned, 0);
     const totalPaidAll = employeeFinancials.reduce((sum, item) => sum + item.financials.totalPaid, 0);
     const totalBalanceAll = employeeFinancials.reduce((sum, item) => sum + item.financials.balance, 0);
+
+    const handleExportLedgerCSV = () => {
+        const rows: (string | number)[][] = filteredFinancials.map(({ employee, financials }) => [
+            employee.name,
+            employee.role,
+            financials.totalHours.toFixed(1),
+            financials.totalEarned.toFixed(2),
+            financials.totalPaid.toFixed(2),
+            financials.balance.toFixed(2),
+        ]);
+
+        downloadCSV(
+            `payroll-ledger_${getSriLankaDate()}.csv`,
+            ['Employee', 'Role', 'Total Hours', 'Earned', 'Paid', 'Balance Due'],
+            rows
+        );
+    };
+
+    const handleExportPaymentLogCSV = () => {
+        const rows: (string | number)[][] = todaysPayments.map(p => {
+            const emp = employees.find(e => e.id === p.employeeId);
+            return [emp?.name || 'Unknown', formatPaymentType(p.type), p.notes || '', p.amount];
+        });
+
+        downloadCSV(
+            `payment-log_${selectedDate}.csv`,
+            ['Employee', 'Type', 'Notes', 'Amount'],
+            rows
+        );
+    };
 
     return (
         <div className="shell payments-page">
@@ -166,7 +199,19 @@ export default function SalaryPage() {
                         <h2 className="text-lg font-bold text-blue-900">Payment Log for {selectedDate}</h2>
                         {isPaymentLogOpen ? <ChevronUp size={20} className="text-blue-700" /> : <ChevronDown size={20} className="text-blue-700" />}
                     </div>
-                    <span className="text-2xl font-bold text-blue-700">{totalPaidToday.toLocaleString()}</span>
+                    <div className="flex items-center gap-3">
+                        {todaysPayments.length > 0 && (
+                            <button
+                                type="button"
+                                className="btn btn-outline btn-sm"
+                                onClick={(e) => { e.stopPropagation(); handleExportPaymentLogCSV(); }}
+                            >
+                                <Download size={16} />
+                                Export CSV
+                            </button>
+                        )}
+                        <span className="text-2xl font-bold text-blue-700">{totalPaidToday.toLocaleString()}</span>
+                    </div>
                 </div>
 
                 {isPaymentLogOpen && (
@@ -212,15 +257,26 @@ export default function SalaryPage() {
                         <h2 className="workbench-title">Payment Workbench</h2>
                         <p className="workbench-meta">Highest balances appear first. Showing {filteredFinancials.length} of {employees.length} employees.</p>
                     </div>
-                    <div className="search-box payments-search-box">
-                        <Search size={18} className="text-[var(--color-text-muted)]" />
-                        <input
-                            type="text"
-                            placeholder="Search employee, role, or NIC..."
-                            className="input"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <div className="flex items-center gap-3">
+                        <div className="search-box payments-search-box">
+                            <Search size={18} className="text-[var(--color-text-muted)]" />
+                            <input
+                                type="text"
+                                placeholder="Search employee, role, or NIC..."
+                                className="input"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            onClick={handleExportLedgerCSV}
+                            disabled={filteredFinancials.length === 0}
+                        >
+                            <Download size={16} />
+                            Export CSV
+                        </button>
                     </div>
                 </div>
                 <div className="workbench-body">
@@ -283,7 +339,7 @@ export default function SalaryPage() {
                                     </div>
                                 </div>
 
-                                <div className="salary-actions">
+                                <div className="salary-actions salary-actions-triple">
                                     <button
                                         onClick={() => setViewDetailsEmployee(emp.id)}
                                         className="btn btn-outline"
@@ -291,6 +347,13 @@ export default function SalaryPage() {
                                         <FileText size={18} />
                                         Details
                                     </button>
+                                    <Link
+                                        href={`/salary/payslip/${emp.id}?start=${currentMonthRange.start}&end=${currentMonthRange.end}`}
+                                        className="btn btn-outline"
+                                    >
+                                        <Receipt size={18} />
+                                        Payslip
+                                    </Link>
                                     <button
                                         onClick={() => setSelectedEmployee(emp.id)}
                                         className="btn btn-primary"
