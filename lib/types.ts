@@ -13,6 +13,7 @@ export interface Employee {
     active: boolean;
     phone?: string;
     nic?: string;
+    photoPath?: string;
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'half-day';
@@ -44,6 +45,7 @@ export interface Payment {
     date: string;
     type?: 'salary' | 'advance' | 'bonus';
     notes?: string;
+    receiptPath?: string;
 }
 
 export interface User {
