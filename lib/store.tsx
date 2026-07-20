@@ -5,6 +5,7 @@ import { Employee, Attendance, AttendanceStatus, Payment, Site, User } from './t
 import { useRouter } from 'next/navigation';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
+import { dequeue, enqueue, isNetworkFailure, loadQueue } from './offlineQueue';
 
 type StoredRole = {
     role: string;
@@ -19,6 +20,8 @@ interface AppContextType {
     sites: Site[];
     user: User | null;
     isLoading: boolean;
+    isOffline: boolean;
+    pendingSyncCount: number;
     addEmployee: (employee: Omit<Employee, 'id'>) => Promise<void>;
     updateEmployee: (id: string, data: Partial<Employee>) => Promise<void>;
     deleteEmployee: (id: string) => Promise<void>;
@@ -131,6 +134,17 @@ function mapPaymentRow(p: PaymentRow): Payment {
     };
 }
 
+function buildAttendanceUpdates(data: Partial<Attendance>): Record<string, unknown> {
+    const updates: Record<string, unknown> = {};
+    if (data.status) updates.status = data.status;
+    if (data.role !== undefined) updates.role = data.role;
+    if (data.site !== undefined) updates.site_id = data.site || null;
+    if (data.startTime !== undefined) updates.start_time = data.startTime || null;
+    if (data.endTime !== undefined) updates.end_time = data.endTime || null;
+    if (data.workingHours !== undefined) updates.working_hours = data.workingHours;
+    return updates;
+}
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -141,6 +155,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [sites, setSites] = useState<Site[]>([]);
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
     async function fetchData() {
         // Parallel Fetch for Performance
@@ -356,9 +372,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
     const insertAttendanceSegment = async (record: Omit<Attendance, 'id'>) => {
-        if (!user) return { data: null, error: null };
+        if (!user) return { data: null, error: null, status: 0 };
 
-        const { data, error } = await supabase.from('attendance').insert({
+        const { data, error, status } = await supabase.from('attendance').insert({
             user_id: user.id,
             employee_id: record.employeeId,
             date: record.date,
@@ -370,7 +386,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             working_hours: record.workingHours
         }).select().single();
 
-        return { data, error };
+        return { data, error, status };
+    };
+
+    const insertPayment = async (data: Omit<Payment, 'id'>) => {
+        if (!user) return { data: null, error: null, status: 0 };
+
+        const { data: inserted, error, status } = await supabase.from('payments').insert({
+            user_id: user.id,
+            employee_id: data.employeeId,
+            amount: data.amount,
+            date: data.date,
+            type: data.type || 'salary',
+            notes: data.notes
+        }).select().single();
+
+        return { data: inserted, error, status };
     };
 
     const markAttendance = async (record: Omit<Attendance, 'id'>) => {
@@ -399,22 +430,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }];
         });
 
-        const { error: deleteError } = await supabase
+        const { error: deleteError, status: deleteStatus } = await supabase
             .from('attendance')
             .delete()
             .eq('employee_id', record.employeeId)
             .eq('date', record.date);
 
-        const { data: inserted, error: insertError } = deleteError
-            ? { data: null, error: null }
-            : await insertAttendanceSegment(record);
-        const error = deleteError || insertError;
-
-        if (error) {
-            console.error('Error marking attendance:', error);
-            alert('Failed to mark attendance: ' + error.message);
+        if (deleteError) {
+            if (isNetworkFailure(deleteStatus)) {
+                setPendingSyncCount(enqueue({ type: 'markAttendance', tempId, payload: record }).length);
+                return;
+            }
+            console.error('Error marking attendance:', deleteError);
+            alert('Failed to mark attendance: ' + deleteError.message);
             setAttendance(previousAttendance);
-        } else if (inserted) {
+            return;
+        }
+
+        const { data: inserted, error: insertError, status: insertStatus } = await insertAttendanceSegment(record);
+
+        if (insertError) {
+            if (isNetworkFailure(insertStatus)) {
+                setPendingSyncCount(enqueue({ type: 'markAttendance', tempId, payload: record }).length);
+                return;
+            }
+            console.error('Error marking attendance:', insertError);
+            alert('Failed to mark attendance: ' + insertError.message);
+            setAttendance(previousAttendance);
+            return;
+        }
+
+        if (inserted) {
             setAttendance(prev => prev.map(a => a.id === tempId ? mapAttendanceRow(inserted) : a));
         }
     };
@@ -441,16 +487,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
         ]);
 
-        await supabase
+        const { error: deleteError, status: deleteStatus } = await supabase
             .from('attendance')
             .delete()
             .eq('employee_id', record.employeeId)
             .eq('date', record.date)
             .eq('status', 'absent');
 
-        const { data: inserted, error } = await insertAttendanceSegment(record);
+        if (deleteError && isNetworkFailure(deleteStatus)) {
+            setPendingSyncCount(enqueue({ type: 'addAttendanceSegment', tempId, payload: record }).length);
+            return;
+        }
+
+        const { data: inserted, error, status } = await insertAttendanceSegment(record);
 
         if (error) {
+            if (isNetworkFailure(status)) {
+                setPendingSyncCount(enqueue({ type: 'addAttendanceSegment', tempId, payload: record }).length);
+                return;
+            }
             console.error('Error adding attendance segment:', error);
             alert('Failed to add attendance segment: ' + error.message);
             setAttendance(previousAttendance);
@@ -465,17 +520,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const previousAttendance = [...attendance];
         setAttendance(prev => prev.map(record => record.id === id ? { ...record, ...data } : record));
 
-        const updates: Record<string, unknown> = {};
-        if (data.status) updates.status = data.status;
-        if (data.role !== undefined) updates.role = data.role;
-        if (data.site !== undefined) updates.site_id = data.site || null;
-        if (data.startTime !== undefined) updates.start_time = data.startTime || null;
-        if (data.endTime !== undefined) updates.end_time = data.endTime || null;
-        if (data.workingHours !== undefined) updates.working_hours = data.workingHours;
-
-        const { error } = await supabase.from('attendance').update(updates).eq('id', id);
+        const { error, status } = await supabase.from('attendance').update(buildAttendanceUpdates(data)).eq('id', id);
 
         if (error) {
+            if (isNetworkFailure(status)) {
+                setPendingSyncCount(enqueue({ type: 'updateAttendanceSegment', targetId: id, payload: data }).length);
+                return;
+            }
             console.error('Error updating attendance segment:', error);
             alert('Failed to update attendance segment: ' + error.message);
             setAttendance(previousAttendance);
@@ -488,9 +539,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const previousAttendance = [...attendance];
         setAttendance(prev => prev.filter(record => record.id !== id));
 
-        const { error } = await supabase.from('attendance').delete().eq('id', id);
+        const { error, status } = await supabase.from('attendance').delete().eq('id', id);
 
         if (error) {
+            if (isNetworkFailure(status)) {
+                setPendingSyncCount(enqueue({ type: 'deleteAttendanceSegment', targetId: id }).length);
+                return;
+            }
             console.error('Error deleting attendance segment:', error);
             alert('Failed to delete attendance segment: ' + error.message);
             setAttendance(previousAttendance);
@@ -513,16 +568,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             notes: data.notes || ''
         }, ...prev]);
 
-        const { data: inserted, error } = await supabase.from('payments').insert({
-            user_id: user.id,
-            employee_id: data.employeeId,
-            amount: data.amount,
-            date: data.date,
-            type: data.type || 'salary',
-            notes: data.notes
-        }).select().single();
+        const { data: inserted, error, status } = await insertPayment(data);
 
         if (error || !inserted) {
+            if (isNetworkFailure(status)) {
+                setPendingSyncCount(enqueue({ type: 'addPayment', tempId, payload: data }).length);
+                return;
+            }
             console.error('Error adding payment:', error);
             alert('Failed to add payment: ' + error?.message);
             setPayments(previousPayments);
@@ -561,14 +613,134 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Optimistic Update
         setPayments(prev => prev.filter(p => p.id !== id));
 
-        const { error } = await supabase.from('payments').delete().eq('id', id);
+        const { error, status } = await supabase.from('payments').delete().eq('id', id);
 
         if (error) {
+            if (isNetworkFailure(status)) {
+                setPendingSyncCount(enqueue({ type: 'deletePayment', targetId: id }).length);
+                return;
+            }
             console.error('Delete Payment Error:', error);
             alert('Failed to delete payment: ' + error.message);
             setPayments(previousPayments);
         }
     };
+
+    const syncQueue = async () => {
+        if (!user) return;
+        if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+
+        let queue = loadQueue();
+
+        for (const op of [...queue]) {
+            if (op.type === 'markAttendance') {
+                const { error: deleteError, status: deleteStatus } = await supabase
+                    .from('attendance')
+                    .delete()
+                    .eq('employee_id', op.payload.employeeId)
+                    .eq('date', op.payload.date);
+
+                if (deleteError && isNetworkFailure(deleteStatus)) break;
+
+                const { data: inserted, error, status } = deleteError
+                    ? { data: null, error: deleteError, status: deleteStatus }
+                    : await insertAttendanceSegment(op.payload);
+
+                if (error) {
+                    if (isNetworkFailure(status)) break;
+                    queue = dequeue(op.id);
+                    setPendingSyncCount(queue.length);
+                    continue;
+                }
+
+                if (inserted) {
+                    setAttendance(prev => prev.map(a => a.id === op.tempId ? mapAttendanceRow(inserted) : a));
+                }
+                queue = dequeue(op.id);
+                setPendingSyncCount(queue.length);
+            } else if (op.type === 'addAttendanceSegment') {
+                await supabase
+                    .from('attendance')
+                    .delete()
+                    .eq('employee_id', op.payload.employeeId)
+                    .eq('date', op.payload.date)
+                    .eq('status', 'absent');
+
+                const { data: inserted, error, status } = await insertAttendanceSegment(op.payload);
+
+                if (error) {
+                    if (isNetworkFailure(status)) break;
+                    queue = dequeue(op.id);
+                    setPendingSyncCount(queue.length);
+                    continue;
+                }
+
+                if (inserted) {
+                    setAttendance(prev => prev.map(a => a.id === op.tempId ? mapAttendanceRow(inserted) : a));
+                }
+                queue = dequeue(op.id);
+                setPendingSyncCount(queue.length);
+            } else if (op.type === 'updateAttendanceSegment') {
+                const { error, status } = await supabase.from('attendance').update(buildAttendanceUpdates(op.payload)).eq('id', op.targetId);
+
+                if (error && isNetworkFailure(status)) break;
+
+                queue = dequeue(op.id);
+                setPendingSyncCount(queue.length);
+            } else if (op.type === 'deleteAttendanceSegment') {
+                const { error, status } = await supabase.from('attendance').delete().eq('id', op.targetId);
+
+                if (error && isNetworkFailure(status)) break;
+
+                queue = dequeue(op.id);
+                setPendingSyncCount(queue.length);
+            } else if (op.type === 'addPayment') {
+                const { data: inserted, error, status } = await insertPayment(op.payload);
+
+                if (error || !inserted) {
+                    if (isNetworkFailure(status)) break;
+                    queue = dequeue(op.id);
+                    setPendingSyncCount(queue.length);
+                    continue;
+                }
+
+                setPayments(prev => prev.map(p => p.id === op.tempId ? mapPaymentRow(inserted) : p));
+                queue = dequeue(op.id);
+                setPendingSyncCount(queue.length);
+            } else if (op.type === 'deletePayment') {
+                const { error, status } = await supabase.from('payments').delete().eq('id', op.targetId);
+
+                if (error && isNetworkFailure(status)) break;
+
+                queue = dequeue(op.id);
+                setPendingSyncCount(queue.length);
+            }
+        }
+    };
+
+    // Offline queue: track connectivity and flush pending attendance/payment ops once back online.
+    useEffect(() => {
+        setPendingSyncCount(loadQueue().length);
+
+        const handleOnline = () => {
+            setIsOffline(false);
+            syncQueue();
+        };
+        const handleOffline = () => setIsOffline(true);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        if (navigator.onLine) {
+            syncQueue();
+        }
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
 
     const addSite = async (data: Omit<Site, 'id'>) => {
         if (!user) return;
@@ -699,7 +871,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AppContext.Provider value={{
-            employees, attendance, payments, sites, user, isLoading,
+            employees, attendance, payments, sites, user, isLoading, isOffline, pendingSyncCount,
             addEmployee, updateEmployee, deleteEmployee, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, addPayment, updatePayment, deletePayment, addSite, updateSite, removeSite,
             updateProfile,
             logout
