@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { BadgeDollarSign, CalendarDays, Clock, Filter, FileText, Users } from 'lucide-react';
+import { BadgeDollarSign, CalendarDays, Clock, Download, Filter, FileText, Users } from 'lucide-react';
 import { calculateAttendanceSegmentCosts } from '@/lib/salary';
+import { downloadCSV } from '@/lib/exportUtils';
 
 export default function ReportsPage() {
     const { employees, attendance, sites } = useApp();
@@ -45,6 +46,24 @@ export default function ReportsPage() {
 
     const reportData = calculateReport();
     const selectedSiteName = reportSite ? sites.find(s => s.id === reportSite)?.name || 'Selected site' : 'All sites';
+
+    const handleExportCSV = () => {
+        if (!reportData) return;
+
+        const rows: (string | number)[][] = reportData.rows.map(item => [
+            item.name,
+            item.hours.toFixed(1),
+            item.cost.toFixed(2),
+        ]);
+        rows.push(['Total', reportData.totalHours.toFixed(1), reportData.totalCost.toFixed(2)]);
+
+        const siteSlug = selectedSiteName.replace(/\s+/g, '-').toLowerCase();
+        downloadCSV(
+            `labor-report_${siteSlug}_${reportStart}_to_${reportEnd}.csv`,
+            ['Employee', 'Total Hours', 'Cost Contribution'],
+            rows
+        );
+    };
 
     return (
         <div className="shell reports-page">
@@ -135,8 +154,14 @@ export default function ReportsPage() {
                                 <h3 className="text-xl font-bold">Cost Breakdown by Employee</h3>
                                 <p className="page-subtitle">Sorted by highest labor cost contribution.</p>
                             </div>
-                            <div className="soft-icon primary">
-                                <FileText size={20} />
+                            <div className="flex items-center gap-3">
+                                <button type="button" className="btn btn-outline btn-sm" onClick={handleExportCSV}>
+                                    <Download size={16} />
+                                    Export CSV
+                                </button>
+                                <div className="soft-icon primary">
+                                    <FileText size={20} />
+                                </div>
                             </div>
                         </div>
 

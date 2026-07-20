@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Employee, Attendance, Payment, Site, User } from './types';
+import { Employee, Attendance, AttendanceStatus, Payment, Site, User } from './types';
 import { useRouter } from 'next/navigation';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
@@ -36,6 +36,101 @@ interface AppContextType {
     logout: () => void;
 }
 
+type EmployeeRow = {
+    id: string;
+    name: string;
+    role: string;
+    daily_rate: number;
+    rate_history?: { rate: number; effectiveDate: string }[] | null;
+    additional_roles?: StoredRole[] | null;
+    joined_date: string;
+    status?: string;
+    phone?: string;
+    nic?: string;
+};
+
+function mapEmployeeRow(e: EmployeeRow): Employee {
+    return {
+        id: e.id,
+        name: e.name,
+        role: e.role,
+        dailyRate: e.daily_rate,
+        rateHistory: e.rate_history || [],
+        additionalRoles: ((e.additional_roles || []) as StoredRole[]).map((r) => ({
+            ...r,
+            rateHistory: r.rateHistory || []
+        })),
+        joinedDate: e.joined_date,
+        active: e.status === 'active',
+        phone: e.phone,
+        nic: e.nic
+    };
+}
+
+type SiteRow = {
+    id: string;
+    name: string;
+    location: string;
+    status?: 'active' | 'completed' | 'on-hold';
+};
+
+function mapSiteRow(s: SiteRow): Site {
+    return {
+        id: s.id,
+        name: s.name,
+        location: s.location,
+        status: s.status || 'active'
+    };
+}
+
+type AttendanceRow = {
+    id: string;
+    employee_id: string;
+    date: string;
+    created_at?: string;
+    status: AttendanceStatus;
+    role?: string;
+    site_id?: string;
+    start_time?: string;
+    end_time?: string;
+    working_hours?: number;
+};
+
+function mapAttendanceRow(a: AttendanceRow): Attendance {
+    return {
+        id: a.id,
+        employeeId: a.employee_id,
+        date: a.date,
+        createdAt: a.created_at,
+        status: a.status,
+        role: a.role,
+        site: a.site_id,
+        startTime: a.start_time,
+        endTime: a.end_time,
+        workingHours: a.working_hours
+    };
+}
+
+type PaymentRow = {
+    id: string;
+    employee_id: string;
+    amount: number;
+    date: string;
+    type?: 'salary' | 'advance' | 'bonus';
+    notes?: string;
+};
+
+function mapPaymentRow(p: PaymentRow): Payment {
+    return {
+        id: p.id,
+        employeeId: p.employee_id,
+        amount: p.amount,
+        date: p.date,
+        type: p.type || 'salary',
+        notes: p.notes || ''
+    };
+}
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -62,56 +157,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         if (empData) {
-            setEmployees(empData.map(e => ({
-                id: e.id,
-                name: e.name,
-                role: e.role,
-                dailyRate: e.daily_rate,
-                rateHistory: e.rate_history || [],
-                additionalRoles: ((e.additional_roles || []) as StoredRole[]).map((r) => ({
-                    ...r,
-                    rateHistory: r.rateHistory || []
-                })),
-                joinedDate: e.joined_date,
-                active: e.status === 'active',
-                phone: e.phone,
-                nic: e.nic
-            })));
+            setEmployees(empData.map(mapEmployeeRow));
         }
 
         if (siteData) {
-            setSites(siteData.map(s => ({
-                id: s.id,
-                name: s.name,
-                location: s.location,
-                status: s.status || 'active'
-            })));
+            setSites(siteData.map(mapSiteRow));
         }
 
         if (attData) {
-            setAttendance(attData.map(a => ({
-                id: a.id,
-                employeeId: a.employee_id,
-                date: a.date,
-                createdAt: a.created_at,
-                status: a.status,
-                role: a.role,
-                site: a.site_id,
-                startTime: a.start_time,
-                endTime: a.end_time,
-                workingHours: a.working_hours
-            })));
+            setAttendance(attData.map(mapAttendanceRow));
         }
 
         if (payData) {
-            setPayments(payData.map(p => ({
-                id: p.id,
-                employeeId: p.employee_id,
-                amount: p.amount,
-                date: p.date,
-                type: p.type || 'salary',
-                notes: p.notes || ''
-            })));
+            setPayments(payData.map(mapPaymentRow));
         }
     }
 
@@ -209,7 +267,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             nic: data.nic
         }, ...prev]);
 
-        const { error } = await supabase.from('employees').insert({
+        const { data: inserted, error } = await supabase.from('employees').insert({
             user_id: user.id,
             name: data.name,
             role: data.role,
@@ -220,19 +278,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             status: data.active ? 'active' : 'inactive',
             phone: data.phone,
             nic: data.nic
-        });
+        }).select().single();
 
-        if (error) {
+        if (error || !inserted) {
             console.error('Error adding employee:', error);
-            alert('Failed to add employee: ' + error.message);
+            alert('Failed to add employee: ' + error?.message);
             setEmployees(previousEmployees); // Hard Rollback
         } else {
-            fetchData();
+            setEmployees(prev => prev.map(emp => emp.id === tempId ? mapEmployeeRow(inserted) : emp));
         }
     };
 
     const updateEmployee = async (id: string, data: Partial<Employee>) => {
         if (!user) return;
+
+        const previousEmployees = [...employees];
 
         // Optimistic Update
         setEmployees(prev => prev.map(emp =>
@@ -255,12 +315,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) {
             console.error('Update Employee Error:', error);
             alert('Failed to update employee: ' + error.message);
-            fetchData();
+            setEmployees(previousEmployees);
         }
     };
 
     const deleteEmployee = async (id: string) => {
         if (!user) return;
+
+        const previousEmployees = [...employees];
+        const previousAttendance = [...attendance];
+        const previousPayments = [...payments];
 
         // Optimistic Delete
         setEmployees(prev => prev.filter(e => e.id !== id));
@@ -269,18 +333,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setPayments(prev => prev.filter(p => p.employeeId !== id));
 
         // 1. Delete Attendance
-        await supabase.from('attendance').delete().eq('employee_id', id);
+        const { error: attendanceError } = await supabase.from('attendance').delete().eq('employee_id', id);
 
         // 2. Delete Payments
-        await supabase.from('payments').delete().eq('employee_id', id);
+        const { error: paymentsError } = await supabase.from('payments').delete().eq('employee_id', id);
 
         // 3. Delete Employee
-        const { error } = await supabase.from('employees').delete().eq('id', id);
+        const { error: employeeError } = await supabase.from('employees').delete().eq('id', id);
+
+        const error = attendanceError || paymentsError || employeeError;
 
         if (error) {
             console.error('Delete Employee Error:', error);
             alert('Failed to delete employee: ' + error.message);
-            fetchData();
+            setEmployees(previousEmployees);
+            setAttendance(previousAttendance);
+            setPayments(previousPayments);
         }
     };
 
@@ -288,9 +356,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
     const insertAttendanceSegment = async (record: Omit<Attendance, 'id'>) => {
-        if (!user) return null;
+        if (!user) return { data: null, error: null };
 
-        const { error } = await supabase.from('attendance').insert({
+        const { data, error } = await supabase.from('attendance').insert({
             user_id: user.id,
             employee_id: record.employeeId,
             date: record.date,
@@ -300,9 +368,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             start_time: record.startTime || null,
             end_time: record.endTime || null,
             working_hours: record.workingHours
-        });
+        }).select().single();
 
-        return error;
+        return { data, error };
     };
 
     const markAttendance = async (record: Omit<Attendance, 'id'>) => {
@@ -312,12 +380,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
 
         const previousAttendance = [...attendance];
+        const tempId = 'temp-' + Math.random().toString(36).substr(2, 9);
 
         // Replace every segment for this employee/date with one quick action record.
         setAttendance(prev => {
             const others = prev.filter(a => !(a.employeeId === record.employeeId && a.date === record.date));
             return [...others, {
-                id: 'temp-' + Math.random().toString(36).substr(2, 9),
+                id: tempId,
                 employeeId: record.employeeId,
                 date: record.date,
                 createdAt: new Date().toISOString(),
@@ -336,15 +405,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .eq('employee_id', record.employeeId)
             .eq('date', record.date);
 
-        const insertError = deleteError ? null : await insertAttendanceSegment(record);
+        const { data: inserted, error: insertError } = deleteError
+            ? { data: null, error: null }
+            : await insertAttendanceSegment(record);
         const error = deleteError || insertError;
 
         if (error) {
             console.error('Error marking attendance:', error);
             alert('Failed to mark attendance: ' + error.message);
             setAttendance(previousAttendance);
-        } else {
-            fetchData();
+        } else if (inserted) {
+            setAttendance(prev => prev.map(a => a.id === tempId ? mapAttendanceRow(inserted) : a));
         }
     };
 
@@ -352,11 +423,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
 
         const previousAttendance = [...attendance];
+        const tempId = 'temp-' + Math.random().toString(36).substr(2, 9);
 
         setAttendance(prev => [
             ...prev.filter(a => !(a.employeeId === record.employeeId && a.date === record.date && a.status === 'absent')),
             {
-                id: 'temp-' + Math.random().toString(36).substr(2, 9),
+                id: tempId,
                 employeeId: record.employeeId,
                 date: record.date,
                 createdAt: new Date().toISOString(),
@@ -376,14 +448,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .eq('date', record.date)
             .eq('status', 'absent');
 
-        const error = await insertAttendanceSegment(record);
+        const { data: inserted, error } = await insertAttendanceSegment(record);
 
         if (error) {
             console.error('Error adding attendance segment:', error);
             alert('Failed to add attendance segment: ' + error.message);
             setAttendance(previousAttendance);
-        } else {
-            fetchData();
+        } else if (inserted) {
+            setAttendance(prev => prev.map(a => a.id === tempId ? mapAttendanceRow(inserted) : a));
         }
     };
 
@@ -407,8 +479,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             console.error('Error updating attendance segment:', error);
             alert('Failed to update attendance segment: ' + error.message);
             setAttendance(previousAttendance);
-        } else {
-            fetchData();
         }
     };
 
@@ -424,17 +494,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             console.error('Error deleting attendance segment:', error);
             alert('Failed to delete attendance segment: ' + error.message);
             setAttendance(previousAttendance);
-        } else {
-            fetchData();
         }
     };
 
     const addPayment = async (data: Omit<Payment, 'id'>) => {
         if (!user) return;
 
+        const previousPayments = [...payments];
+        const tempId = 'temp-' + Date.now();
+
         // Optimistic
         setPayments(prev => [{
-            id: 'temp-' + Date.now(),
+            id: tempId,
             employeeId: data.employeeId,
             amount: data.amount,
             date: data.date,
@@ -442,21 +513,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             notes: data.notes || ''
         }, ...prev]);
 
-        const { error } = await supabase.from('payments').insert({
+        const { data: inserted, error } = await supabase.from('payments').insert({
             user_id: user.id,
             employee_id: data.employeeId,
             amount: data.amount,
             date: data.date,
             type: data.type || 'salary',
             notes: data.notes
-        });
+        }).select().single();
 
-        if (!error) fetchData();
-        else fetchData(); // Revert
+        if (error || !inserted) {
+            console.error('Error adding payment:', error);
+            alert('Failed to add payment: ' + error?.message);
+            setPayments(previousPayments);
+        } else {
+            setPayments(prev => prev.map(p => p.id === tempId ? mapPaymentRow(inserted) : p));
+        }
     };
 
     const updatePayment = async (id: string, data: Partial<Payment>) => {
         if (!user) return;
+
+        const previousPayments = [...payments];
 
         // Optimistic Update
         setPayments(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
@@ -472,12 +550,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) {
             console.error('Update Payment Error:', error);
             alert('Failed to update payment: ' + error.message);
-            fetchData(); // Revert
+            setPayments(previousPayments);
         }
     };
 
     const deletePayment = async (id: string) => {
         if (!user) return;
+
+        const previousPayments = [...payments];
         // Optimistic Update
         setPayments(prev => prev.filter(p => p.id !== id));
 
@@ -486,34 +566,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) {
             console.error('Delete Payment Error:', error);
             alert('Failed to delete payment: ' + error.message);
-            fetchData(); // Revert
+            setPayments(previousPayments);
         }
     };
 
     const addSite = async (data: Omit<Site, 'id'>) => {
         if (!user) return;
 
+        const previousSites = [...sites];
+        const tempId = 'temp-' + Date.now();
+
         // Optimistic
         setSites(prev => [{
-            id: 'temp-' + Date.now(),
+            id: tempId,
             name: data.name,
             location: data.location,
             status: data.status || 'active'
         }, ...prev]);
 
-        const { error } = await supabase.from('sites').insert({
+        const { data: inserted, error } = await supabase.from('sites').insert({
             user_id: user.id,
             name: data.name,
             location: data.location,
             status: data.status || 'active'
-        });
+        }).select().single();
 
-        if (!error) fetchData();
-        else fetchData();
+        if (error || !inserted) {
+            console.error('Error adding site:', error);
+            alert('Failed to add site: ' + error?.message);
+            setSites(previousSites);
+        } else {
+            setSites(prev => prev.map(s => s.id === tempId ? mapSiteRow(inserted) : s));
+        }
     };
 
     const updateSite = async (id: string, data: Partial<Site>) => {
         if (!user) return;
+
+        const previousSites = [...sites];
 
         // Optimistically Update
         setSites(prev => prev.map(site =>
@@ -530,13 +620,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) {
             console.error('Update Site Error:', error);
             alert('Failed to update site: ' + error.message);
-            fetchData();
+            setSites(previousSites);
         }
     };
 
     const removeSite = async (id: string) => {
+        if (!user) return;
+
+        const previousSites = [...sites];
+        setSites(prev => prev.filter(site => site.id !== id));
+
         const { error } = await supabase.from('sites').delete().eq('id', id);
-        if (!error) fetchData();
+
+        if (error) {
+            console.error('Remove Site Error:', error);
+            alert('Failed to remove site: ' + error.message);
+            setSites(previousSites);
+        }
     };
 
     const updateProfile = async (data: Pick<User, 'name' | 'companyName'>) => {
