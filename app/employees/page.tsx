@@ -1,15 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useApp } from '@/lib/store';
-import { BadgeCheck, BriefcaseBusiness, Edit, Phone, Plus, RotateCcw, Search, Trash2, TrendingUp, User, UserX, Users, X } from 'lucide-react';
+import { BadgeCheck, BriefcaseBusiness, Camera, Edit, Loader2, Phone, Plus, RotateCcw, Search, Trash2, TrendingUp, User, UserX, Users, X } from 'lucide-react';
 import { Employee } from '@/lib/types';
+import { uploadAttachment, validateAttachmentFile } from '@/lib/storage';
+import { AttachmentImage } from '@/components/AttachmentImage';
 
 type EmployeeFilter = 'active' | 'inactive' | 'all';
 
 export default function EmployeesPage() {
-    const { employees, addEmployee, updateEmployee, deleteEmployee } = useApp();
+    const { employees, user, addEmployee, updateEmployee, deleteEmployee } = useApp();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+    const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+    const photoInputRef = useRef<HTMLInputElement>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedFilter, setSelectedFilter] = useState<EmployeeFilter>('active');
@@ -34,7 +39,8 @@ export default function EmployeesPage() {
         additionalRoles: [] as { role: string; dailyRate: number; rateHistory?: { rate: number; effectiveDate: string }[] }[], // Added rateHistory to additional roles
         joinedDate: new Date().toISOString().split('T')[0],
         phone: '',
-        nic: ''
+        nic: '',
+        photoPath: undefined as string | undefined
     });
 
     const resetForm = () => {
@@ -46,9 +52,36 @@ export default function EmployeesPage() {
             additionalRoles: [],
             joinedDate: new Date().toISOString().split('T')[0],
             phone: '',
-            nic: ''
+            nic: '',
+            photoPath: undefined
         });
         setEditingId(null);
+        setPhotoPreviewUrl(null);
+    };
+
+    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file || !user) return;
+
+        const validationError = validateAttachmentFile('employee-photos', file);
+        if (validationError) {
+            alert(validationError);
+            return;
+        }
+
+        setPhotoPreviewUrl(URL.createObjectURL(file));
+        setIsUploadingPhoto(true);
+        try {
+            const path = await uploadAttachment('employee-photos', user.id, file);
+            setFormData(prev => ({ ...prev, photoPath: path }));
+        } catch (err) {
+            console.error('Error uploading photo:', err);
+            alert('Failed to upload photo. Please try again.');
+            setPhotoPreviewUrl(null);
+        } finally {
+            setIsUploadingPhoto(false);
+        }
     };
 
     const handleOpenAdd = () => {
@@ -66,8 +99,10 @@ export default function EmployeesPage() {
             additionalRoles: emp.additionalRoles || [],
             joinedDate: emp.joinedDate.split('T')[0],
             phone: emp.phone || '',
-            nic: emp.nic || ''
+            nic: emp.nic || '',
+            photoPath: emp.photoPath
         });
+        setPhotoPreviewUrl(null);
         setIsModalOpen(true);
     };
 
@@ -102,7 +137,8 @@ export default function EmployeesPage() {
             additionalRoles: formData.additionalRoles,
             joinedDate: formData.joinedDate,
             phone: formData.phone,
-            nic: formData.nic
+            nic: formData.nic,
+            photoPath: formData.photoPath
         };
 
         if (editingId) {
@@ -362,6 +398,53 @@ export default function EmployeesPage() {
 
                         <form onSubmit={handleSubmit}>
                             <div className="employee-form-section-title">Profile</div>
+
+                            <div className="form-field employee-photo-field">
+                                <label className="label">Photo</label>
+                                <div className="employee-photo-picker">
+                                    <button
+                                        type="button"
+                                        className="employee-photo-preview"
+                                        onClick={() => photoInputRef.current?.click()}
+                                        disabled={isUploadingPhoto}
+                                    >
+                                        {isUploadingPhoto ? (
+                                            <Loader2 size={22} className="animate-spin" />
+                                        ) : photoPreviewUrl ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={photoPreviewUrl} alt="" />
+                                        ) : formData.photoPath ? (
+                                            <AttachmentImage
+                                                bucket="employee-photos"
+                                                path={formData.photoPath}
+                                                alt=""
+                                                fallback={<Camera size={22} />}
+                                            />
+                                        ) : (
+                                            <Camera size={22} />
+                                        )}
+                                    </button>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => photoInputRef.current?.click()}
+                                            disabled={isUploadingPhoto}
+                                        >
+                                            {formData.photoPath ? 'Replace Photo' : 'Upload Photo'}
+                                        </button>
+                                        <p className="helper-text">JPEG, PNG or WebP, up to 5MB.</p>
+                                    </div>
+                                    <input
+                                        ref={photoInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp"
+                                        className="hidden"
+                                        onChange={handlePhotoChange}
+                                    />
+                                </div>
+                            </div>
+
                             <div className="form-field">
                                 <label className="label">Full Name</label>
                                 <input
@@ -642,7 +725,13 @@ export default function EmployeesPage() {
                                         <tr key={emp.id} className={`employees-table-row ${!emp.active ? 'employee-row-inactive' : ''}`}>
                                             <td data-label="Employee">
                                                 <div className="employee-cell">
-                                                    <div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>
+                                                    <AttachmentImage
+                                                        bucket="employee-photos"
+                                                        path={emp.photoPath}
+                                                        alt={emp.name}
+                                                        className="avatar-sm avatar-photo"
+                                                        fallback={<div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>}
+                                                    />
                                                     <div className="min-w-0">
                                                         <div className="font-bold text-[var(--color-text-main)]">{emp.name}</div>
                                                         <div className="subtle-line">Joined {emp.joinedDate.split('T')[0]}</div>

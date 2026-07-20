@@ -50,6 +50,7 @@ type EmployeeRow = {
     status?: string;
     phone?: string;
     nic?: string;
+    photo_path?: string | null;
 };
 
 function mapEmployeeRow(e: EmployeeRow): Employee {
@@ -66,7 +67,8 @@ function mapEmployeeRow(e: EmployeeRow): Employee {
         joinedDate: e.joined_date,
         active: e.status === 'active',
         phone: e.phone,
-        nic: e.nic
+        nic: e.nic,
+        photoPath: e.photo_path || undefined
     };
 }
 
@@ -121,6 +123,7 @@ type PaymentRow = {
     date: string;
     type?: 'salary' | 'advance' | 'bonus';
     notes?: string;
+    receipt_path?: string | null;
 };
 
 function mapPaymentRow(p: PaymentRow): Payment {
@@ -130,7 +133,8 @@ function mapPaymentRow(p: PaymentRow): Payment {
         amount: p.amount,
         date: p.date,
         type: p.type || 'salary',
-        notes: p.notes || ''
+        notes: p.notes || '',
+        receiptPath: p.receipt_path || undefined
     };
 }
 
@@ -280,7 +284,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             joinedDate: data.joinedDate || new Date().toISOString(),
             active: data.active ?? true,
             phone: data.phone,
-            nic: data.nic
+            nic: data.nic,
+            photoPath: data.photoPath
         }, ...prev]);
 
         const { data: inserted, error } = await supabase.from('employees').insert({
@@ -293,7 +298,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             joined_date: data.joinedDate || new Date().toISOString(),
             status: data.active ? 'active' : 'inactive',
             phone: data.phone,
-            nic: data.nic
+            nic: data.nic,
+            photo_path: data.photoPath || null
         }).select().single();
 
         if (error || !inserted) {
@@ -325,6 +331,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.active !== undefined) updates.status = data.active ? 'active' : 'inactive';
         if (data.phone !== undefined) updates.phone = data.phone;
         if (data.nic !== undefined) updates.nic = data.nic;
+        if (data.photoPath !== undefined) updates.photo_path = data.photoPath || null;
 
         const { error } = await supabase.from('employees').update(updates).eq('id', id);
 
@@ -398,7 +405,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             amount: data.amount,
             date: data.date,
             type: data.type || 'salary',
-            notes: data.notes
+            notes: data.notes,
+            receipt_path: data.receiptPath || null
         }).select().single();
 
         return { data: inserted, error, status };
@@ -565,7 +573,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             amount: data.amount,
             date: data.date,
             type: data.type || 'salary',
-            notes: data.notes || ''
+            notes: data.notes || '',
+            receiptPath: data.receiptPath
         }, ...prev]);
 
         const { data: inserted, error, status } = await insertPayment(data);
@@ -596,6 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.date) updates.date = data.date;
         if (data.type) updates.type = data.type;
         if (data.notes !== undefined) updates.notes = data.notes;
+        if (data.receiptPath !== undefined) updates.receipt_path = data.receiptPath || null;
 
         const { error } = await supabase.from('payments').update(updates).eq('id', id);
 

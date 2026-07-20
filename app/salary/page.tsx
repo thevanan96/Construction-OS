@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/lib/store';
-import { AlertTriangle, BadgeDollarSign, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, Pencil, Receipt, Search, Timer, Trash2, Wallet, X } from 'lucide-react';
+import { AlertTriangle, BadgeDollarSign, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Download, FileText, Loader2, Paperclip, Pencil, Receipt, Search, Timer, Trash2, Wallet, X } from 'lucide-react';
 import { getCurrentMonthRange, getSriLankaDate } from '@/lib/dateUtils';
 import { Employee } from '@/lib/types';
 import { calculateAttendanceRecordsEarnings, calculateAttendanceSegmentCosts, getAttendanceHours } from '@/lib/salary';
 import { downloadCSV } from '@/lib/exportUtils';
+import { getAttachmentSignedUrl, uploadAttachment, validateAttachmentFile } from '@/lib/storage';
+import { AttachmentImage } from '@/components/AttachmentImage';
 
 const formatPaymentType = (type?: string) => {
     if (type === 'advance') return 'Advance';
@@ -16,16 +18,62 @@ const formatPaymentType = (type?: string) => {
 };
 
 export default function SalaryPage() {
-    const { employees, attendance, payments, addPayment, updatePayment, deletePayment, sites } = useApp();
+    const { employees, attendance, payments, user, addPayment, updatePayment, deletePayment, sites } = useApp();
     const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
     const [viewDetailsEmployee, setViewDetailsEmployee] = useState<string | null>(null);
     const [payAmount, setPayAmount] = useState('');
+    const [payReceiptPath, setPayReceiptPath] = useState<string | undefined>(undefined);
+    const [isUploadingReceipt, setIsUploadingReceipt] = useState(false);
+    const payReceiptInputRef = useRef<HTMLInputElement>(null);
     const [selectedDate, setSelectedDate] = useState(getSriLankaDate());
     const [isPaymentLogOpen, setIsPaymentLogOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
     // Edit Payment State
-    const [editingPayment, setEditingPayment] = useState<{ id: string, amount: string, date: string, notes: string } | null>(null);
+    const [editingPayment, setEditingPayment] = useState<{ id: string, amount: string, date: string, notes: string, receiptPath?: string } | null>(null);
+    const [isUploadingEditReceipt, setIsUploadingEditReceipt] = useState(false);
+    const editReceiptInputRef = useRef<HTMLInputElement>(null);
+
+    const handleReceiptFileChange = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        onUploaded: (path: string) => void,
+        setUploading: (value: boolean) => void
+    ) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file || !user) return;
+
+        const validationError = validateAttachmentFile('payment-receipts', file);
+        if (validationError) {
+            alert(validationError);
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const path = await uploadAttachment('payment-receipts', user.id, file);
+            onUploaded(path);
+        } catch (err) {
+            console.error('Error uploading receipt:', err);
+            alert('Failed to upload receipt. Please try again.');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleOpenReceipt = async (path: string) => {
+        // Deliberately no noopener/noreferrer here: those make window.open() return null,
+        // and we need the reference below to navigate the tab once the signed URL resolves.
+        const newTab = window.open('', '_blank');
+        const url = await getAttachmentSignedUrl('payment-receipts', path);
+        if (url && newTab) {
+            newTab.opener = null;
+            newTab.location.href = url;
+        } else {
+            newTab?.close();
+            alert('Could not load receipt. Please try again.');
+        }
+    };
 
     const handleDateChange = (days: number) => {
         const date = new Date(selectedDate);
@@ -69,11 +117,13 @@ export default function SalaryPage() {
             amount: Number(payAmount),
             date: selectedDate, // Use selected date for payment
             type: 'salary',
-            notes: 'Manual Payment'
+            notes: 'Manual Payment',
+            receiptPath: payReceiptPath
         });
 
         setSelectedEmployee(null);
         setPayAmount('');
+        setPayReceiptPath(undefined);
     };
 
     const currentMonthRange = getCurrentMonthRange();
@@ -236,7 +286,20 @@ export default function SalaryPage() {
                                                     <td className="p-3">
                                                         <span className={`payment-type-badge payment-type-${p.type || 'salary'}`}>{formatPaymentType(p.type)}</span>
                                                     </td>
-                                                    <td className="p-3 text-gray-500">{p.notes}</td>
+                                                    <td className="p-3 text-gray-500">
+                                                        {p.notes}
+                                                        {p.receiptPath && (
+                                                            <button
+                                                                type="button"
+                                                                className="receipt-attachment-link ml-2"
+                                                                onClick={() => handleOpenReceipt(p.receiptPath!)}
+                                                                title="View receipt"
+                                                            >
+                                                                <Paperclip size={12} />
+                                                                Receipt
+                                                            </button>
+                                                        )}
+                                                    </td>
                                                     <td className="p-3 text-right font-mono font-bold">{p.amount}</td>
                                                 </tr>
                                             );
@@ -305,7 +368,13 @@ export default function SalaryPage() {
                             <div key={emp.id} className={`card card-interactive salary-card payment-card ${balance > 0 ? 'payment-card-due' : 'payment-card-settled'}`}>
                                 <div className="salary-card-top">
                                     <div className="employee-cell">
-                                        <div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>
+                                        <AttachmentImage
+                                            bucket="employee-photos"
+                                            path={emp.photoPath}
+                                            alt={emp.name}
+                                            className="avatar-sm avatar-photo"
+                                            fallback={<div className="avatar-sm">{emp.name.charAt(0).toUpperCase()}</div>}
+                                        />
                                         <div>
                                             <h3 className="font-bold text-lg text-[var(--color-dark)]">{emp.name}</h3>
                                             <p className="text-sm text-[var(--color-text-muted)]">{emp.role}</p>
@@ -461,7 +530,20 @@ export default function SalaryPage() {
                                                         <td>
                                                             <span className={`payment-type-badge payment-type-${payment.type || 'salary'}`}>{formatPaymentType(payment.type)}</span>
                                                         </td>
-                                                        <td className="text-sm text-[var(--color-text-muted)]">{payment.notes || '-'}</td>
+                                                        <td className="text-sm text-[var(--color-text-muted)]">
+                                                            {payment.notes || '-'}
+                                                            {payment.receiptPath && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="receipt-attachment-link ml-2"
+                                                                    onClick={() => handleOpenReceipt(payment.receiptPath!)}
+                                                                    title="View receipt"
+                                                                >
+                                                                    <Paperclip size={12} />
+                                                                    Receipt
+                                                                </button>
+                                                            )}
+                                                        </td>
                                                         <td className="text-right font-mono font-bold text-[var(--color-success)]">{payment.amount}</td>
                                                         <td className="text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <button
@@ -469,7 +551,8 @@ export default function SalaryPage() {
                                                                     id: payment.id,
                                                                     amount: payment.amount.toString(),
                                                                     date: payment.date.split('T')[0],
-                                                                    notes: payment.notes || ''
+                                                                    notes: payment.notes || '',
+                                                                    receiptPath: payment.receiptPath
                                                                 })}
                                                                 className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                                                                 title="Edit"
@@ -541,10 +624,42 @@ export default function SalaryPage() {
                                     />
                                 </div>
 
+                                <div className="mb-4">
+                                    <label className="label">Receipt (Optional)</label>
+                                    <div className="receipt-upload-row">
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline btn-sm"
+                                            onClick={() => payReceiptInputRef.current?.click()}
+                                            disabled={isUploadingReceipt}
+                                        >
+                                            {isUploadingReceipt ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                                            {payReceiptPath ? 'Replace Receipt' : 'Attach Receipt'}
+                                        </button>
+                                        {payReceiptPath && !isUploadingReceipt && (
+                                            <button
+                                                type="button"
+                                                className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                                onClick={() => setPayReceiptPath(undefined)}
+                                                title="Remove receipt"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input
+                                        ref={payReceiptInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                                        className="hidden"
+                                        onChange={e => handleReceiptFileChange(e, setPayReceiptPath, setIsUploadingReceipt)}
+                                    />
+                                </div>
+
                                 <div className="flex justify-end gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => setSelectedEmployee(null)}
+                                        onClick={() => { setSelectedEmployee(null); setPayReceiptPath(undefined); }}
                                         className="btn btn-outline"
                                     >
                                         Cancel
@@ -582,7 +697,8 @@ export default function SalaryPage() {
                                 updatePayment(editingPayment.id, {
                                     amount: Number(editingPayment.amount),
                                     date: editingPayment.date,
-                                    notes: editingPayment.notes
+                                    notes: editingPayment.notes,
+                                    receiptPath: editingPayment.receiptPath
                                 });
                                 setEditingPayment(null);
                             }
@@ -608,13 +724,59 @@ export default function SalaryPage() {
                                     min="0"
                                 />
                             </div>
-                            <div className="mb-4">
+                            <div className="mb-3">
                                 <label className="label">Notes</label>
                                 <input
                                     type="text"
                                     className="input w-full"
                                     value={editingPayment.notes}
                                     onChange={e => setEditingPayment({ ...editingPayment, notes: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="mb-4">
+                                <label className="label">Receipt</label>
+                                <div className="receipt-upload-row">
+                                    {editingPayment.receiptPath && (
+                                        <button
+                                            type="button"
+                                            className="receipt-attachment-link"
+                                            onClick={() => handleOpenReceipt(editingPayment.receiptPath!)}
+                                        >
+                                            <Paperclip size={14} />
+                                            View current
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline btn-sm"
+                                        onClick={() => editReceiptInputRef.current?.click()}
+                                        disabled={isUploadingEditReceipt}
+                                    >
+                                        {isUploadingEditReceipt ? <Loader2 size={16} className="animate-spin" /> : <Paperclip size={16} />}
+                                        {editingPayment.receiptPath ? 'Replace' : 'Attach'}
+                                    </button>
+                                    {editingPayment.receiptPath && !isUploadingEditReceipt && (
+                                        <button
+                                            type="button"
+                                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                            onClick={() => setEditingPayment({ ...editingPayment, receiptPath: undefined })}
+                                            title="Remove receipt"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                                <input
+                                    ref={editReceiptInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                                    className="hidden"
+                                    onChange={e => handleReceiptFileChange(
+                                        e,
+                                        (path) => setEditingPayment(prev => prev ? { ...prev, receiptPath: path } : prev),
+                                        setIsUploadingEditReceipt
+                                    )}
                                 />
                             </div>
 
