@@ -5629,3 +5629,51 @@ canvas {
     background: #fff;
   }
 }
+
+/* Offline sync status */
+
+.sync-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sync-status-offline {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger-border);
+}
+
+.sync-status-syncing {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning-border);
+}
+
+.sync-status-spin {
+  animation: sync-status-spin 1s linear infinite;
+}
+
+@keyframes sync-status-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .sync-status-pill span {
+    display: none;
+  }
+
+  .sync-status-pill {
+    padding: 6px;
+  }
+}

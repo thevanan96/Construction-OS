@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut, FileText, Menu, Settings, X } from 'lucide-react';
+import { LayoutDashboard, Users, CalendarCheck, Banknote, Building, LogOut, FileText, Menu, RefreshCw, Settings, WifiOff, X } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 const navItems = [
@@ -19,7 +19,7 @@ const navItems = [
 
 export function Navbar() {
     const pathname = usePathname();
-    const { user, logout } = useApp();
+    const { user, logout, isOffline, pendingSyncCount } = useApp();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     return (
@@ -55,6 +55,17 @@ export function Navbar() {
             </div>
 
             <div className="navbar-right">
+                {isOffline ? (
+                    <span className="sync-status-pill sync-status-offline" title="You're offline. Changes will sync automatically once reconnected.">
+                        <WifiOff size={14} />
+                        <span>Offline{pendingSyncCount > 0 ? ` · ${pendingSyncCount} pending` : ''}</span>
+                    </span>
+                ) : pendingSyncCount > 0 ? (
+                    <span className="sync-status-pill sync-status-syncing" title="Syncing offline changes...">
+                        <RefreshCw size={14} className="sync-status-spin" />
+                        <span>Syncing {pendingSyncCount}…</span>
+                    </span>
+                ) : null}
                 <Link href="/settings" className={`user-profile user-profile-link ${pathname === '/settings' ? 'active' : ''}`}>
                     <div className="user-avatar">
                         {user?.name.charAt(0)}
