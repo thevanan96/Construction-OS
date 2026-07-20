@@ -8,7 +8,7 @@ import { getCurrentMonthRange, getSriLankaDate } from '@/lib/dateUtils';
 import { Employee } from '@/lib/types';
 import { calculateAttendanceRecordsEarnings, calculateAttendanceSegmentCosts, getAttendanceHours } from '@/lib/salary';
 import { downloadCSV } from '@/lib/exportUtils';
-import { getAttachmentSignedUrl, uploadAttachment, validateAttachmentFile } from '@/lib/storage';
+import { getAttachmentSignedUrl, removeAttachment, uploadAttachment, validateAttachmentFile } from '@/lib/storage';
 import { AttachmentImage } from '@/components/AttachmentImage';
 
 const formatPaymentType = (type?: string) => {
@@ -31,11 +31,17 @@ export default function SalaryPage() {
 
     // Edit Payment State
     const [editingPayment, setEditingPayment] = useState<{ id: string, amount: string, date: string, notes: string, receiptPath?: string } | null>(null);
+    const [initialEditReceiptPath, setInitialEditReceiptPath] = useState<string | undefined>(undefined);
     const [isUploadingEditReceipt, setIsUploadingEditReceipt] = useState(false);
     const editReceiptInputRef = useRef<HTMLInputElement>(null);
 
+    // `protectedPath`, if set, is a saved receipt that must not be deleted immediately
+    // (e.g. mid-edit, before the user has actually saved the change) — only a genuinely
+    // unsaved upload from this session is safe to delete right away.
     const handleReceiptFileChange = async (
         e: React.ChangeEvent<HTMLInputElement>,
+        previousPath: string | undefined,
+        protectedPath: string | undefined,
         onUploaded: (path: string) => void,
         setUploading: (value: boolean) => void
     ) => {
@@ -49,6 +55,10 @@ export default function SalaryPage() {
             return;
         }
 
+        if (previousPath && previousPath !== protectedPath) {
+            removeAttachment('payment-receipts', previousPath).catch(err => console.error('Error removing replaced receipt:', err));
+        }
+
         setUploading(true);
         try {
             const path = await uploadAttachment('payment-receipts', user.id, file);
@@ -59,6 +69,16 @@ export default function SalaryPage() {
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleCloseEditPaymentModal = () => {
+        // If a new receipt was uploaded this session but never saved, clean it up.
+        // The originally saved receipt (if any) is left untouched.
+        if (editingPayment?.receiptPath && editingPayment.receiptPath !== initialEditReceiptPath) {
+            removeAttachment('payment-receipts', editingPayment.receiptPath).catch(err => console.error('Error cleaning up unsaved receipt:', err));
+        }
+        setEditingPayment(null);
+        setInitialEditReceiptPath(undefined);
     };
 
     const handleOpenReceipt = async (path: string) => {
@@ -545,15 +565,18 @@ export default function SalaryPage() {
                                                             )}
                                                         </td>
                                                         <td className="text-right font-mono font-bold text-[var(--color-success)]">{payment.amount}</td>
-                                                        <td className="text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <td className="text-right flex justify-end gap-2">
                                                             <button
-                                                                onClick={() => setEditingPayment({
-                                                                    id: payment.id,
-                                                                    amount: payment.amount.toString(),
-                                                                    date: payment.date.split('T')[0],
-                                                                    notes: payment.notes || '',
-                                                                    receiptPath: payment.receiptPath
-                                                                })}
+                                                                onClick={() => {
+                                                                    setEditingPayment({
+                                                                        id: payment.id,
+                                                                        amount: payment.amount.toString(),
+                                                                        date: payment.date.split('T')[0],
+                                                                        notes: payment.notes || '',
+                                                                        receiptPath: payment.receiptPath
+                                                                    });
+                                                                    setInitialEditReceiptPath(payment.receiptPath);
+                                                                }}
                                                                 className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                                                                 title="Edit"
                                                             >
@@ -640,7 +663,10 @@ export default function SalaryPage() {
                                             <button
                                                 type="button"
                                                 className="p-1 text-red-600 hover:bg-red-50 rounded"
-                                                onClick={() => setPayReceiptPath(undefined)}
+                                                onClick={() => {
+                                                    removeAttachment('payment-receipts', payReceiptPath).catch(err => console.error('Error removing receipt:', err));
+                                                    setPayReceiptPath(undefined);
+                                                }}
                                                 title="Remove receipt"
                                             >
                                                 <X size={16} />
@@ -652,14 +678,18 @@ export default function SalaryPage() {
                                         type="file"
                                         accept="image/jpeg,image/png,image/webp,application/pdf"
                                         className="hidden"
-                                        onChange={e => handleReceiptFileChange(e, setPayReceiptPath, setIsUploadingReceipt)}
+                                        onChange={e => handleReceiptFileChange(e, payReceiptPath, undefined, setPayReceiptPath, setIsUploadingReceipt)}
                                     />
                                 </div>
 
                                 <div className="flex justify-end gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => { setSelectedEmployee(null); setPayReceiptPath(undefined); }}
+                                        onClick={() => {
+                                            if (payReceiptPath) removeAttachment('payment-receipts', payReceiptPath).catch(err => console.error('Error removing receipt:', err));
+                                            setSelectedEmployee(null);
+                                            setPayReceiptPath(undefined);
+                                        }}
                                         className="btn btn-outline"
                                     >
                                         Cancel
@@ -686,21 +716,28 @@ export default function SalaryPage() {
                                 <h3 className="modal-title">Edit Payment</h3>
                                 <p className="modal-subtitle">Update amount, date, or notes.</p>
                             </div>
-                            <button onClick={() => setEditingPayment(null)} className="icon-button" type="button">
+                            <button onClick={handleCloseEditPaymentModal} className="icon-button" type="button">
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <form onSubmit={(e) => {
+                        <form onSubmit={async (e) => {
                             e.preventDefault();
                             if (editingPayment) {
-                                updatePayment(editingPayment.id, {
+                                const saved = await updatePayment(editingPayment.id, {
                                     amount: Number(editingPayment.amount),
                                     date: editingPayment.date,
                                     notes: editingPayment.notes,
                                     receiptPath: editingPayment.receiptPath
                                 });
+                                // Only clean up the old receipt once the DB write actually succeeded —
+                                // otherwise the DB still points at it (e.g. save failed/rolled back offline)
+                                // and deleting it here would leave a broken reference.
+                                if (saved && initialEditReceiptPath && initialEditReceiptPath !== editingPayment.receiptPath) {
+                                    removeAttachment('payment-receipts', initialEditReceiptPath).catch(err => console.error('Error removing old receipt:', err));
+                                }
                                 setEditingPayment(null);
+                                setInitialEditReceiptPath(undefined);
                             }
                         }}>
                             <div className="mb-3">
@@ -774,6 +811,8 @@ export default function SalaryPage() {
                                     className="hidden"
                                     onChange={e => handleReceiptFileChange(
                                         e,
+                                        editingPayment.receiptPath,
+                                        initialEditReceiptPath,
                                         (path) => setEditingPayment(prev => prev ? { ...prev, receiptPath: path } : prev),
                                         setIsUploadingEditReceipt
                                     )}
@@ -783,7 +822,7 @@ export default function SalaryPage() {
                             <div className="flex justify-end gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => setEditingPayment(null)}
+                                    onClick={handleCloseEditPaymentModal}
                                     className="btn btn-outline"
                                 >
                                     Cancel
