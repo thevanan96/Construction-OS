@@ -1,5 +1,5 @@
 :root {
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-md: 0.95rem;
@@ -2628,7 +2628,15 @@ tbody tr:hover td {
 }
 
 .preview-topline strong {
-  color: var(--color-success);
+  color: var(--color-accent-hover);
+}
+
+.preview-sample-note {
+  margin-top: 10px;
+  color: var(--color-text-light);
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-align: right;
 }
 
 .preview-metrics {
@@ -2901,7 +2909,7 @@ tbody tr:hover td {
 
 .marketing-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 560px);
   align-items: center;
   gap: 56px;
   padding: 58px 0 48px;
@@ -2926,8 +2934,8 @@ tbody tr:hover td {
 
 .site-hero-visual {
   position: relative;
-  width: min(100%, 440px);
-  height: 300px;
+  width: min(100%, 560px);
+  height: 480px;
   min-height: 0;
   justify-self: end;
   overflow: hidden;
@@ -3065,7 +3073,7 @@ tbody tr:hover td {
 }
 
 .construction-image-grid img {
-  height: 118px;
+  height: 230px;
   object-position: center 44%;
 }
 
@@ -3094,12 +3102,12 @@ tbody tr:hover td {
 .workflow-visual-stack {
   display: grid;
   gap: 14px;
-  max-width: 440px;
+  max-width: 480px;
   justify-self: end;
 }
 
 .workflow-visual-stack > img {
-  height: 120px;
+  height: 230px;
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.95);
   border-radius: 12px;
@@ -3138,6 +3146,155 @@ tbody tr:hover td {
   margin-top: 12px;
   color: var(--color-text-muted);
   line-height: 1.7;
+}
+
+/* Benefits strip */
+
+.benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.benefit-card {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.86));
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+
+.benefit-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+}
+
+.benefit-card h3 {
+  margin-top: 16px;
+  color: var(--color-dark);
+  font-size: 1.02rem;
+  font-weight: 900;
+}
+
+.benefit-card p {
+  margin-top: 8px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Pricing card */
+
+.pricing-card {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 14px;
+  background: #fff;
+  padding: 26px;
+  box-shadow: var(--shadow-md);
+}
+
+.pricing-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-dark);
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.pricing-card-heading svg {
+  color: var(--color-accent-hover);
+}
+
+.pricing-feature-list {
+  display: grid;
+  gap: 11px;
+  margin-top: 18px;
+}
+
+.pricing-feature-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--color-text-main);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.pricing-feature-list li span {
+  color: var(--color-text-main);
+  font-size: 0.92rem;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.pricing-feature-list svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--color-success);
+}
+
+.pricing-card .btn {
+  margin-top: 22px;
+}
+
+/* FAQ accordion */
+
+.landing-faq {
+  display: grid;
+  gap: 12px;
+  max-width: 780px;
+  margin-top: 28px;
+}
+
+.landing-faq-item {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.landing-faq-question {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 18px 20px;
+  color: var(--color-dark);
+  font-size: 0.98rem;
+  font-weight: 800;
+  text-align: left;
+}
+
+.landing-faq-chevron {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.landing-faq-item.open .landing-faq-chevron {
+  transform: rotate(180deg);
+  color: var(--color-accent-hover);
+}
+
+.landing-faq-answer {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.65;
+  padding: 0 20px 18px;
 }
 
 .landing-about-product {
@@ -3236,6 +3393,7 @@ tbody tr:hover td {
   .about-contact-shell,
   .marketing-hero,
   .marketing-card-grid,
+  .benefits-grid,
   .construction-image-grid,
   .marketing-split,
   .pricing-panel,
@@ -3258,6 +3416,7 @@ tbody tr:hover td {
   .about-contact-shell,
   .marketing-hero,
   .marketing-card-grid,
+  .benefits-grid,
   .construction-image-grid,
   .marketing-split,
   .pricing-panel,
@@ -3641,35 +3800,6 @@ body {
   border-color: #cbd5e1;
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
   transform: translateY(-2px);
-}
-
-.btn-primary {
-  border-color: #f59e0b !important;
-  background: #f59e0b !important;
-  color: #fff !important;
-  box-shadow: 0 12px 24px rgba(245, 158, 11, 0.26);
-}
-
-.btn-primary:hover {
-  border-color: #d97706 !important;
-  background: #d97706 !important;
-}
-
-.btn-outline {
-  border-color: #cbd5e1;
-  background: #fff;
-  color: #0f172a;
-}
-
-.btn-outline:hover {
-  border-color: #94a3b8;
-  background: #f8fafc;
-}
-
-.btn-info {
-  border-color: #dbeafe;
-  background: #eff6ff;
-  color: #2563eb !important;
 }
 
 .btn-danger,
@@ -5105,8 +5235,8 @@ canvas {
 }
 
 .site-hero-visual {
-  width: min(100%, 470px);
-  height: 340px;
+  width: min(100%, 560px);
+  height: 480px;
   border-radius: 14px;
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
 }
