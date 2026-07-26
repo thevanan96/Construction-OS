@@ -5922,3 +5922,91 @@ canvas {
     flex: 1 1 100%;
   }
 }
+
+/* Materials */
+
+.material-transaction-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.material-transaction-submit {
+  display: flex;
+  flex-direction: column;
+}
+
+.material-transaction-submit .btn {
+  justify-content: center;
+}
+
+@media (max-width: 700px) {
+  .material-transaction-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Budget vs Actual */
+
+.budget-vs-actual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.budget-vs-actual-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.budget-vs-actual-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.budget-vs-actual-site-name {
+  font-weight: 800;
+  color: var(--color-dark);
+}
+
+.budget-vs-actual-figures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.budget-vs-actual-figures > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.budget-vs-actual-figures span {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-light);
+}
+
+.budget-vs-actual-figures strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92rem;
+}
+
+.progress-fill-danger {
+  background: var(--color-danger);
+}
+
+.budget-vs-actual-percent {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}

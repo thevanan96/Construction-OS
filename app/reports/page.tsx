@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { BadgeDollarSign, CalendarDays, Clock, Download, Filter, FileText, Package, Users } from 'lucide-react';
+import { BadgeDollarSign, CalendarDays, Clock, Download, Filter, FileText, Package, Target, Users } from 'lucide-react';
 import { calculateAttendanceSegmentCosts } from '@/lib/salary';
 import { downloadCSV } from '@/lib/exportUtils';
-import { formatExpenseCategoryLabel } from '@/lib/types';
+import { formatExpenseCategoryLabel, Site } from '@/lib/types';
 import { formatCurrency } from '@/lib/currency';
 
 export default function ReportsPage() {
@@ -13,6 +13,33 @@ export default function ReportsPage() {
     const [reportSite, setReportSite] = useState('');
     const [reportStart, setReportStart] = useState('');
     const [reportEnd, setReportEnd] = useState('');
+
+    const calculateSiteActual = (siteId: string) => {
+        let labor = 0;
+        employees.forEach(emp => {
+            const records = attendance.filter(record => record.employeeId === emp.id && record.site === siteId);
+            labor += calculateAttendanceSegmentCosts(emp, records).reduce((sum, { cost }) => sum + cost, 0);
+        });
+        const expenseTotal = expenses
+            .filter(e => e.siteId === siteId)
+            .reduce((sum, e) => sum + e.amount, 0);
+
+        return { labor, expenses: expenseTotal, total: labor + expenseTotal };
+    };
+
+    const budgetedSites = sites.filter((s): s is Site & { budget: number } => s.budget !== undefined && s.budget > 0);
+    const budgetRows = budgetedSites
+        .map(site => {
+            const actual = calculateSiteActual(site.id).total;
+            return {
+                site,
+                budget: site.budget,
+                actual,
+                variance: site.budget - actual,
+                percentUsed: site.budget > 0 ? (actual / site.budget) * 100 : 0
+            };
+        })
+        .filter(row => !reportSite || row.site.id === reportSite);
 
     const calculateReport = () => {
         if (!reportStart || !reportEnd) return null;
@@ -148,6 +175,67 @@ export default function ReportsPage() {
                         />
                     </div>
                 </div>
+            </div>
+
+            <div className="panel reports-breakdown-panel mb-8">
+                <div className="section-header mb-4">
+                    <div>
+                        <h3 className="text-xl font-bold">Budget vs Actual</h3>
+                        <p className="page-subtitle">All-time spend per site against its budget, independent of the date range above.</p>
+                    </div>
+                    <div className="soft-icon warning">
+                        <Target size={20} />
+                    </div>
+                </div>
+
+                {budgetRows.length === 0 ? (
+                    <div className="empty-state">
+                        <div>
+                            <Target size={44} className="mx-auto" />
+                            <h3>No site budgets set</h3>
+                            <p>Add a budget to a site from the Sites page to track spend against it here.</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="budget-vs-actual-grid">
+                        {budgetRows.map(row => {
+                            const isOverBudget = row.variance < 0;
+                            return (
+                                <div key={row.site.id} className="budget-vs-actual-card">
+                                    <div className="budget-vs-actual-header">
+                                        <span className="budget-vs-actual-site-name">{row.site.name}</span>
+                                        <span className={`status-badge ${isOverBudget ? 'status-badge-danger' : 'status-badge-success'}`}>
+                                            {isOverBudget ? 'Over Budget' : 'On Track'}
+                                        </span>
+                                    </div>
+                                    <div className="budget-vs-actual-figures">
+                                        <div>
+                                            <span>Budget</span>
+                                            <strong>{formatCurrency(row.budget)}</strong>
+                                        </div>
+                                        <div>
+                                            <span>Actual</span>
+                                            <strong>{formatCurrency(row.actual)}</strong>
+                                        </div>
+                                        <div>
+                                            <span>{isOverBudget ? 'Over by' : 'Remaining'}</span>
+                                            <strong className={isOverBudget ? 'text-[var(--color-danger)]' : 'text-[var(--color-success)]'}>
+                                                {formatCurrency(Math.abs(row.variance))}
+                                            </strong>
+                                        </div>
+                                    </div>
+                                    <div className="progress-track">
+                                        <div
+                                            className={`progress-fill ${isOverBudget ? 'progress-fill-danger' : ''}`}
+                                            style={{ width: `${Math.min(row.percentUsed, 100)}%` }}
+                                        />
+                                    </div>
+                                    <span className="budget-vs-actual-percent">{row.percentUsed.toFixed(0)}% of budget used</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {reportData ? (

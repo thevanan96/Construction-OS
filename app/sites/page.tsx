@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useApp } from '@/lib/store';
-import { Plus, MapPin, Building, Edit, PauseCircle, CheckCircle2, RotateCcw, PlayCircle, CalendarCheck, Clock, Users } from 'lucide-react';
+import { Plus, MapPin, Building, Edit, PauseCircle, CheckCircle2, RotateCcw, PlayCircle, CalendarCheck, Clock, Users, Wallet } from 'lucide-react';
 import { Site } from '@/lib/types';
 import { getAttendanceHours } from '@/lib/salary';
+import { formatCurrency } from '@/lib/currency';
 
 type SiteStatus = NonNullable<Site['status']>;
 type SiteFilter = SiteStatus | 'all';
@@ -38,6 +39,7 @@ export default function SitesPage() {
     const [formData, setFormData] = useState({
         name: '',
         location: '',
+        budget: '',
     });
 
     const activeCount = sites.filter(site => getSiteStatus(site) === 'active').length;
@@ -53,29 +55,34 @@ export default function SitesPage() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        const budget = formData.budget.trim() ? Number(formData.budget) : undefined;
+
         if (editingSite) {
             updateSite(editingSite.id, {
                 name: formData.name,
-                location: formData.location
+                location: formData.location,
+                budget
             });
         } else {
             addSite({
                 name: formData.name,
                 location: formData.location,
                 status: 'active',
+                budget
             });
         }
 
         setIsAdding(false);
         setEditingSite(null);
-        setFormData({ name: '', location: '' });
+        setFormData({ name: '', location: '', budget: '' });
     };
 
     const handleEdit = (site: Site) => {
         setEditingSite(site);
         setFormData({
             name: site.name,
-            location: site.location
+            location: site.location,
+            budget: site.budget !== undefined ? site.budget.toString() : ''
         });
         setIsAdding(true);
     };
@@ -103,7 +110,7 @@ export default function SitesPage() {
                 <button
                     onClick={() => {
                         setEditingSite(null);
-                        setFormData({ name: '', location: '' });
+                        setFormData({ name: '', location: '', budget: '' });
                         setIsAdding(true);
                     }}
                     className="btn btn-primary"
@@ -192,12 +199,24 @@ export default function SitesPage() {
                                     placeholder="e.g. 123 Main St"
                                 />
                             </div>
+                            <div className="form-field">
+                                <label className="label">Budget (Optional)</label>
+                                <input
+                                    type="number"
+                                    className="input"
+                                    value={formData.budget}
+                                    onChange={e => setFormData({ ...formData, budget: e.target.value })}
+                                    placeholder="e.g. 500000"
+                                    min="0"
+                                />
+                            </div>
                             <div className="flex justify-end gap-2 mt-6">
                                 <button
                                     type="button"
                                     onClick={() => {
                                         setIsAdding(false);
                                         setEditingSite(null);
+                                        setFormData({ name: '', location: '', budget: '' });
                                     }}
                                     className="btn btn-outline"
                                 >
@@ -252,6 +271,12 @@ export default function SitesPage() {
                                         <MapPin size={14} />
                                         <span>{site.location}</span>
                                     </div>
+                                    {site.budget !== undefined && (
+                                        <div className="flex items-center gap-1 text-sm text-[var(--color-text-muted)] mt-1">
+                                            <Wallet size={14} />
+                                            <span>Budget: {formatCurrency(site.budget)}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="site-card-edit">
                                     <button
