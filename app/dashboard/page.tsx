@@ -5,10 +5,7 @@ import type { ElementType } from 'react';
 import { useApp } from '@/lib/store';
 import { AlertTriangle, Banknote, Building, CalendarCheck, Clock, FileText, Plus, UserCheck, Wallet } from 'lucide-react';
 import { calculateAttendanceRecordsEarnings, getAttendanceHours } from '@/lib/salary';
-
-function formatNumber(value: number) {
-  return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
-}
+import { formatCurrency } from '@/lib/currency';
 
 export default function DashboardPage() {
   const { employees, attendance, payments, sites } = useApp();
@@ -66,8 +63,8 @@ export default function DashboardPage() {
     },
     {
       label: 'Balance due',
-      value: formatNumber(balanceDue),
-      detail: `${formatNumber(totalPaid)} paid so far`,
+      value: formatCurrency(balanceDue),
+      detail: `${formatCurrency(totalPaid)} paid so far`,
       href: '/salary',
       tone: balanceDue > 0 ? 'danger' : 'success',
     },
@@ -138,8 +135,8 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Balance Due"
-          value={formatNumber(balanceDue)}
-          note={`${formatNumber(totalPaid)} paid across all records`}
+          value={formatCurrency(balanceDue)}
+          note={`${formatCurrency(totalPaid)} paid across all records`}
           icon={Banknote}
           tone="danger"
         />
@@ -230,11 +227,11 @@ export default function DashboardPage() {
             <div className="list-stack">
               <div className="detail-row">
                 <span>Total earned</span>
-                <strong>{formatNumber(totalEarnings)}</strong>
+                <strong>{formatCurrency(totalEarnings)}</strong>
               </div>
               <div className="detail-row">
                 <span>Total paid</span>
-                <strong>{formatNumber(totalPaid)}</strong>
+                <strong>{formatCurrency(totalPaid)}</strong>
               </div>
               <Link href="/salary" className="btn btn-outline">
                 <Wallet size={17} />

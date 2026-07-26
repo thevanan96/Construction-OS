@@ -10,7 +10,8 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
     const { user, isLoading } = useApp();
     const path = usePathname();
     const isAuthPage = path === '/login' || path === '/signup';
-    const isPublicPage = path === '/' || isAuthPage || path === '/features' || path === '/contact';
+    const isPublicPage = path === '/' || isAuthPage || path === '/features' || path === '/contact'
+        || path === '/forgot-password' || path === '/reset-password';
     const router = useRouter();
 
     useEffect(() => {

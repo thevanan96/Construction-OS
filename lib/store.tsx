@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
 import { dequeue, enqueue, isNetworkFailure, loadQueue } from './offlineQueue';
+import { removeAttachment } from './storage';
 
 type StoredRole = {
     role: string;
@@ -391,6 +392,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const previousAttendance = [...attendance];
         const previousPayments = [...payments];
 
+        // Capture attachments to clean up from storage once the delete actually succeeds.
+        const photoPathToClean = employees.find(e => e.id === id)?.photoPath;
+        const receiptPathsToClean = payments
+            .filter(p => p.employeeId === id && p.receiptPath)
+            .map(p => p.receiptPath!);
+
         // Optimistic Delete
         setEmployees(prev => prev.filter(e => e.id !== id));
         // Remove related local data
@@ -414,7 +421,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setEmployees(previousEmployees);
             setAttendance(previousAttendance);
             setPayments(previousPayments);
+            return;
         }
+
+        if (photoPathToClean) {
+            removeAttachment('employee-photos', photoPathToClean).catch(err => console.error('Error removing employee photo:', err));
+        }
+        receiptPathsToClean.forEach(path => {
+            removeAttachment('payment-receipts', path).catch(err => console.error('Error removing payment receipt:', err));
+        });
     };
 
 
@@ -666,6 +681,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
 
         const previousPayments = [...payments];
+        const receiptPathToClean = payments.find(p => p.id === id)?.receiptPath;
         // Optimistic Update
         setPayments(prev => prev.filter(p => p.id !== id));
 
@@ -679,6 +695,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             console.error('Delete Payment Error:', error);
             alert('Failed to delete payment: ' + error.message);
             setPayments(previousPayments);
+            return;
+        }
+
+        if (receiptPathToClean) {
+            removeAttachment('payment-receipts', receiptPathToClean).catch(err => console.error('Error removing payment receipt:', err));
         }
     };
 
@@ -942,6 +963,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!user) return;
 
         const previousExpenses = [...expenses];
+        const receiptPathToClean = expenses.find(e => e.id === id)?.receiptPath;
         setExpenses(prev => prev.filter(e => e.id !== id));
 
         const { error } = await supabase.from('expenses').delete().eq('id', id);
@@ -950,6 +972,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             console.error('Delete Expense Error:', error);
             alert('Failed to delete expense: ' + error.message);
             setExpenses(previousExpenses);
+            return;
+        }
+
+        if (receiptPathToClean) {
+            removeAttachment('expense-receipts', receiptPathToClean).catch(err => console.error('Error removing expense receipt:', err));
         }
     };
 
