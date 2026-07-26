@@ -36,6 +36,7 @@ export interface Site {
     name: string;
     location: string;
     status?: 'active' | 'completed' | 'on-hold';
+    budget?: number;
 }
 
 export interface Payment {
@@ -72,6 +73,26 @@ export interface Expense {
     vendor?: string;
     notes?: string;
     receiptPath?: string;
+}
+
+export interface Material {
+    id: string;
+    siteId: string;
+    name: string;
+    unit: string;
+    reorderPoint: number;
+    notes?: string;
+}
+
+export type MaterialTransactionType = 'received' | 'used' | 'adjustment';
+
+export interface MaterialTransaction {
+    id: string;
+    materialId: string;
+    type: MaterialTransactionType;
+    quantity: number; // signed: positive increases stock, negative decreases it
+    date: string;
+    notes?: string;
 }
 
 export interface User {

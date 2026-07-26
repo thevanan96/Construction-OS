@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Employee, Attendance, AttendanceStatus, Expense, Payment, Site, User } from './types';
+import { Employee, Attendance, AttendanceStatus, Expense, Payment, Site, Material, MaterialTransaction, User } from './types';
 import { useRouter } from 'next/navigation';
 import { supabase } from './supabase';
 import type { Session } from '@supabase/supabase-js';
@@ -19,6 +19,8 @@ interface AppContextType {
     attendance: Attendance[];
     payments: Payment[];
     expenses: Expense[];
+    materials: Material[];
+    materialTransactions: MaterialTransaction[];
     sites: Site[];
     user: User | null;
     isLoading: boolean;
@@ -40,6 +42,11 @@ interface AppContextType {
     addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
     updateExpense: (id: string, data: Partial<Expense>) => Promise<boolean>;
     deleteExpense: (id: string) => Promise<void>;
+    addMaterial: (material: Omit<Material, 'id'>) => Promise<void>;
+    updateMaterial: (id: string, data: Partial<Material>) => Promise<boolean>;
+    deleteMaterial: (id: string) => Promise<void>;
+    addMaterialTransaction: (transaction: Omit<MaterialTransaction, 'id'>) => Promise<void>;
+    deleteMaterialTransaction: (id: string) => Promise<void>;
     updateProfile: (data: Pick<User, 'name' | 'companyName'>) => Promise<void>;
     logout: () => void;
 }
@@ -82,6 +89,7 @@ type SiteRow = {
     name: string;
     location: string;
     status?: 'active' | 'completed' | 'on-hold';
+    budget?: number | null;
 };
 
 function mapSiteRow(s: SiteRow): Site {
@@ -89,7 +97,8 @@ function mapSiteRow(s: SiteRow): Site {
         id: s.id,
         name: s.name,
         location: s.location,
-        status: s.status || 'active'
+        status: s.status || 'active',
+        budget: s.budget ?? undefined
     };
 }
 
@@ -169,6 +178,46 @@ function mapExpenseRow(e: ExpenseRow): Expense {
     };
 }
 
+type MaterialRow = {
+    id: string;
+    site_id: string;
+    name: string;
+    unit: string;
+    reorder_point: number;
+    notes?: string | null;
+};
+
+function mapMaterialRow(m: MaterialRow): Material {
+    return {
+        id: m.id,
+        siteId: m.site_id,
+        name: m.name,
+        unit: m.unit,
+        reorderPoint: m.reorder_point,
+        notes: m.notes || undefined
+    };
+}
+
+type MaterialTransactionRow = {
+    id: string;
+    material_id: string;
+    type: 'received' | 'used' | 'adjustment';
+    quantity: number;
+    date: string;
+    notes?: string | null;
+};
+
+function mapMaterialTransactionRow(t: MaterialTransactionRow): MaterialTransaction {
+    return {
+        id: t.id,
+        materialId: t.material_id,
+        type: t.type,
+        quantity: t.quantity,
+        date: t.date,
+        notes: t.notes || undefined
+    };
+}
+
 function buildAttendanceUpdates(data: Partial<Attendance>): Record<string, unknown> {
     const updates: Record<string, unknown> = {};
     if (data.status) updates.status = data.status;
@@ -188,6 +237,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [attendance, setAttendance] = useState<Attendance[]>([]);
     const [payments, setPayments] = useState<Payment[]>([]);
     const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [materials, setMaterials] = useState<Material[]>([]);
+    const [materialTransactions, setMaterialTransactions] = useState<MaterialTransaction[]>([]);
     const [sites, setSites] = useState<Site[]>([]);
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -201,13 +252,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             { data: siteData },
             { data: attData },
             { data: payData },
-            { data: expData }
+            { data: expData },
+            { data: matData },
+            { data: matTxnData }
         ] = await Promise.all([
             supabase.from('employees').select('*').order('created_at', { ascending: false }),
             supabase.from('sites').select('*').order('created_at', { ascending: false }),
             supabase.from('attendance').select('*').order('date', { ascending: false }),
             supabase.from('payments').select('*').order('date', { ascending: false }),
-            supabase.from('expenses').select('*').order('date', { ascending: false })
+            supabase.from('expenses').select('*').order('date', { ascending: false }),
+            supabase.from('materials').select('*').order('created_at', { ascending: false }),
+            supabase.from('material_transactions').select('*').order('date', { ascending: false })
         ]);
 
         if (empData) {
@@ -228,6 +283,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (expData) {
             setExpenses(expData.map(mapExpenseRow));
+        }
+
+        if (matData) {
+            setMaterials(matData.map(mapMaterialRow));
+        }
+
+        if (matTxnData) {
+            setMaterialTransactions(matTxnData.map(mapMaterialTransactionRow));
         }
     }
 
@@ -265,6 +328,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 setAttendance([]);
                 setPayments([]);
                 setExpenses([]);
+                setMaterials([]);
+                setMaterialTransactions([]);
                 setSites([]);
             }
             setIsLoading(false);
@@ -830,14 +895,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             id: tempId,
             name: data.name,
             location: data.location,
-            status: data.status || 'active'
+            status: data.status || 'active',
+            budget: data.budget
         }, ...prev]);
 
         const { data: inserted, error } = await supabase.from('sites').insert({
             user_id: user.id,
             name: data.name,
             location: data.location,
-            status: data.status || 'active'
+            status: data.status || 'active',
+            budget: data.budget ?? null
         }).select().single();
 
         if (error || !inserted) {
@@ -863,6 +930,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.name) updates.name = data.name;
         if (data.location) updates.location = data.location;
         if (data.status) updates.status = data.status;
+        // 'in' (not !== undefined): callers signal "clear the budget" with an explicit
+        // `budget: undefined` key, which must be distinguishable from "field not touched".
+        if ('budget' in data) updates.budget = data.budget ?? null;
 
         const { error } = await supabase.from('sites').update(updates).eq('id', id);
 
@@ -980,6 +1050,131 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const addMaterial = async (data: Omit<Material, 'id'>) => {
+        if (!user) return;
+
+        const previousMaterials = [...materials];
+        const tempId = 'temp-' + Date.now();
+
+        setMaterials(prev => [{
+            id: tempId,
+            siteId: data.siteId,
+            name: data.name,
+            unit: data.unit,
+            reorderPoint: data.reorderPoint,
+            notes: data.notes
+        }, ...prev]);
+
+        const { data: inserted, error } = await supabase.from('materials').insert({
+            user_id: user.id,
+            site_id: data.siteId,
+            name: data.name,
+            unit: data.unit,
+            reorder_point: data.reorderPoint,
+            notes: data.notes
+        }).select().single();
+
+        if (error || !inserted) {
+            console.error('Error adding material:', error);
+            alert('Failed to add material: ' + error?.message);
+            setMaterials(previousMaterials);
+        } else {
+            setMaterials(prev => prev.map(m => m.id === tempId ? mapMaterialRow(inserted) : m));
+        }
+    };
+
+    const updateMaterial = async (id: string, data: Partial<Material>): Promise<boolean> => {
+        if (!user) return false;
+
+        const previousMaterials = [...materials];
+
+        setMaterials(prev => prev.map(m => m.id === id ? { ...m, ...data } : m));
+
+        const updates: Record<string, unknown> = {};
+        if (data.siteId) updates.site_id = data.siteId;
+        if (data.name) updates.name = data.name;
+        if (data.unit) updates.unit = data.unit;
+        if (data.reorderPoint !== undefined) updates.reorder_point = data.reorderPoint;
+        if (data.notes !== undefined) updates.notes = data.notes;
+
+        const { error } = await supabase.from('materials').update(updates).eq('id', id);
+
+        if (error) {
+            console.error('Update Material Error:', error);
+            alert('Failed to update material: ' + error.message);
+            setMaterials(previousMaterials);
+            return false;
+        }
+        return true;
+    };
+
+    const deleteMaterial = async (id: string) => {
+        if (!user) return;
+
+        const previousMaterials = [...materials];
+        const previousTransactions = [...materialTransactions];
+
+        setMaterials(prev => prev.filter(m => m.id !== id));
+        setMaterialTransactions(prev => prev.filter(t => t.materialId !== id));
+
+        const { error } = await supabase.from('materials').delete().eq('id', id);
+
+        if (error) {
+            console.error('Delete Material Error:', error);
+            alert('Failed to delete material: ' + error.message);
+            setMaterials(previousMaterials);
+            setMaterialTransactions(previousTransactions);
+        }
+    };
+
+    const addMaterialTransaction = async (data: Omit<MaterialTransaction, 'id'>) => {
+        if (!user) return;
+
+        const previousTransactions = [...materialTransactions];
+        const tempId = 'temp-' + Date.now();
+
+        setMaterialTransactions(prev => [{
+            id: tempId,
+            materialId: data.materialId,
+            type: data.type,
+            quantity: data.quantity,
+            date: data.date,
+            notes: data.notes
+        }, ...prev]);
+
+        const { data: inserted, error } = await supabase.from('material_transactions').insert({
+            user_id: user.id,
+            material_id: data.materialId,
+            type: data.type,
+            quantity: data.quantity,
+            date: data.date,
+            notes: data.notes
+        }).select().single();
+
+        if (error || !inserted) {
+            console.error('Error adding material transaction:', error);
+            alert('Failed to add material transaction: ' + error?.message);
+            setMaterialTransactions(previousTransactions);
+        } else {
+            setMaterialTransactions(prev => prev.map(t => t.id === tempId ? mapMaterialTransactionRow(inserted) : t));
+        }
+    };
+
+    const deleteMaterialTransaction = async (id: string) => {
+        if (!user) return;
+
+        const previousTransactions = [...materialTransactions];
+        setMaterialTransactions(prev => prev.filter(t => t.id !== id));
+
+        const { error } = await supabase.from('material_transactions').delete().eq('id', id);
+
+        if (error) {
+            console.error('Delete Material Transaction Error:', error);
+            alert('Failed to delete material transaction: ' + error.message);
+            setMaterialTransactions(previousTransactions);
+        }
+    };
+
     const updateProfile = async (data: Pick<User, 'name' | 'companyName'>) => {
         if (!user) return;
 
@@ -1029,6 +1224,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setAttendance([]);
         setPayments([]);
         setExpenses([]);
+        setMaterials([]);
+        setMaterialTransactions([]);
         setSites([]);
 
         // 2. Clear Supabase session (fire and forget)
@@ -1041,9 +1238,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AppContext.Provider value={{
-            employees, attendance, payments, expenses, sites, user, isLoading, isOffline, pendingSyncCount,
+            employees, attendance, payments, expenses, materials, materialTransactions, sites, user, isLoading, isOffline, pendingSyncCount,
             addEmployee, updateEmployee, deleteEmployee, markAttendance, addAttendanceSegment, updateAttendanceSegment, deleteAttendanceSegment, addPayment, updatePayment, deletePayment, addSite, updateSite, removeSite,
             addExpense, updateExpense, deleteExpense,
+            addMaterial, updateMaterial, deleteMaterial, addMaterialTransaction, deleteMaterialTransaction,
             updateProfile,
             logout
         }}>
