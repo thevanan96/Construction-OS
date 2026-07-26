@@ -6,6 +6,7 @@ import { BadgeCheck, BriefcaseBusiness, Camera, Edit, Loader2, Phone, Plus, Rota
 import { Employee } from '@/lib/types';
 import { removeAttachment, uploadAttachment, validateAttachmentFile } from '@/lib/storage';
 import { AttachmentImage } from '@/components/AttachmentImage';
+import { formatCurrency } from '@/lib/currency';
 
 type EmployeeFilter = 'active' | 'inactive' | 'all';
 
@@ -674,7 +675,7 @@ export default function EmployeesPage() {
                                 onChange={e => setIncrementData({ ...incrementData, newRate: Number(e.target.value) })}
                                 autoFocus
                             />
-                            <p className="helper-text">Current rate: {incrementData.currentRate}</p>
+                            <p className="helper-text">Current rate: {formatCurrency(incrementData.currentRate)}</p>
                         </div>
 
                         <div className="form-field mb-6">
@@ -803,7 +804,7 @@ export default function EmployeesPage() {
                                             <td data-label="Current Rate">
                                                 <span className="rate-chip">
                                                     <span>Current</span>
-                                                    {emp.dailyRate}
+                                                    {formatCurrency(emp.dailyRate)}
                                                 </span>
                                             </td>
                                             <td data-label="Status">

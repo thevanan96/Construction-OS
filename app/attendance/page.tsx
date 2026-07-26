@@ -7,6 +7,7 @@ import { BadgeDollarSign, CalendarDays, ChevronLeft, ChevronRight, Check, Clock,
 import { Attendance, AttendanceStatus, Employee } from '@/lib/types';
 import { getSriLankaDate } from '@/lib/dateUtils';
 import { getApplicableDailyRate, getAttendanceHours } from '@/lib/salary';
+import { formatCurrency } from '@/lib/currency';
 
 type AttendanceView = 'card' | 'quick';
 type QuickFilter = AttendanceStatus | 'not-marked' | 'all';
@@ -533,7 +534,7 @@ export default function AttendancePage() {
                                             <h3>{emp.name}</h3>
                                             <div className="attendance-card-meta">
                                                 <span>{emp.role}</span>
-                                                <span className="attendance-rate-muted">Rate {effectiveRate}</span>
+                                                <span className="attendance-rate-muted">Rate {formatCurrency(effectiveRate)}</span>
                                             </div>
                                         </div>
                                         <div className="attendance-card-badges">
@@ -666,7 +667,7 @@ export default function AttendancePage() {
                                                                 </button>
                                                             </div>
                                                         </div>
-                                                        <div className="attendance-rate-muted">Segment rate {recordRate}</div>
+                                                        <div className="attendance-rate-muted">Segment rate {formatCurrency(recordRate)}</div>
                                                     </div>
                                                 );
                                             })}
@@ -705,7 +706,7 @@ export default function AttendancePage() {
                                             <div className="attendance-advance-paid">
                                                 <div className="attendance-advance-paid-copy">
                                                     <span>Advance Paid</span>
-                                                    <strong>{paidAdvance.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                                                    <strong>{formatCurrency(paidAdvance)}</strong>
                                                 </div>
                                                 <button
                                                     className="icon-button attendance-advance-delete"

@@ -7,6 +7,7 @@ import { DEFAULT_EXPENSE_CATEGORIES, Expense, ExpenseCategory, formatExpenseCate
 import { getSriLankaDate } from '@/lib/dateUtils';
 import { downloadCSV } from '@/lib/exportUtils';
 import { getAttachmentSignedUrl, removeAttachment, uploadAttachment, validateAttachmentFile } from '@/lib/storage';
+import { formatCurrency } from '@/lib/currency';
 
 const NEW_CATEGORY_OPTION = '__add_new__';
 
@@ -183,7 +184,7 @@ export default function ExpensesPage() {
     };
 
     const handleDelete = (expense: Expense) => {
-        if (!confirm(`Delete this ${formatExpenseCategoryLabel(expense.category).toLowerCase()} expense of ${expense.amount}?\n\nThis cannot be undone.`)) return;
+        if (!confirm(`Delete this ${formatExpenseCategoryLabel(expense.category).toLowerCase()} expense of ${formatCurrency(expense.amount)}?\n\nThis cannot be undone.`)) return;
         deleteExpense(expense.id);
     };
 
@@ -242,7 +243,7 @@ export default function ExpensesPage() {
                 <div className="insight-card">
                     <div>
                         <span>Total</span>
-                        <strong>{totalAmount.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        <strong>{formatCurrency(totalAmount)}</strong>
                     </div>
                     <div className="soft-icon primary">
                         <Wallet size={20} />
@@ -251,7 +252,7 @@ export default function ExpensesPage() {
                 <div className="insight-card">
                     <div>
                         <span>Materials</span>
-                        <strong>{totalsByCategory.materials.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        <strong>{formatCurrency(totalsByCategory.materials)}</strong>
                     </div>
                     <div className="soft-icon">
                         <Package size={20} />
@@ -260,7 +261,7 @@ export default function ExpensesPage() {
                 <div className="insight-card">
                     <div>
                         <span>Equipment</span>
-                        <strong>{totalsByCategory.equipment.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        <strong>{formatCurrency(totalsByCategory.equipment)}</strong>
                     </div>
                     <div className="soft-icon info">
                         <Package size={20} />
@@ -269,7 +270,7 @@ export default function ExpensesPage() {
                 <div className="insight-card">
                     <div>
                         <span>Subcontractor</span>
-                        <strong>{totalsByCategory.subcontractor.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        <strong>{formatCurrency(totalsByCategory.subcontractor)}</strong>
                     </div>
                     <div className="soft-icon warning">
                         <BadgeDollarSign size={20} />
@@ -374,7 +375,7 @@ export default function ExpensesPage() {
                                                 )}
                                             </td>
                                             <td className="text-sm text-[var(--color-text-muted)]">{expense.vendor || '-'}</td>
-                                            <td className="text-right font-mono font-bold">{expense.amount.toLocaleString()}</td>
+                                            <td className="text-right font-mono font-bold">{formatCurrency(expense.amount)}</td>
                                             <td className="text-right flex justify-end gap-2">
                                                 <button
                                                     onClick={() => handleEdit(expense)}

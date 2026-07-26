@@ -112,7 +112,7 @@ export default function LoginPage() {
                             <div className="form-group">
                                 <div className="label-row">
                                     <label className="label">Password</label>
-                                    <a href="#" className="link-forgot">Forgot password?</a>
+                                    <Link href="/forgot-password" className="link-forgot">Forgot password?</Link>
                                 </div>
                                 <div className="input-wrapper">
                                     <input

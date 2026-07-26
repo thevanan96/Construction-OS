@@ -10,6 +10,7 @@ import { calculateAttendanceRecordsEarnings, calculateAttendanceSegmentCosts, ge
 import { downloadCSV } from '@/lib/exportUtils';
 import { getAttachmentSignedUrl, removeAttachment, uploadAttachment, validateAttachmentFile } from '@/lib/storage';
 import { AttachmentImage } from '@/components/AttachmentImage';
+import { formatCurrency } from '@/lib/currency';
 
 const formatPaymentType = (type?: string) => {
     if (type === 'advance') return 'Advance';
@@ -223,7 +224,7 @@ export default function SalaryPage() {
                 <div className="insight-card">
                     <div>
                         <span>Total Earned</span>
-                        <strong>{totalEarnedAll.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        <strong>{formatCurrency(totalEarnedAll)}</strong>
                     </div>
                     <div className="soft-icon info">
                         <BadgeDollarSign size={20} />
@@ -232,7 +233,7 @@ export default function SalaryPage() {
                 <div className="insight-card">
                     <div>
                         <span>Paid All Time</span>
-                        <strong>{totalPaidAll.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        <strong>{formatCurrency(totalPaidAll)}</strong>
                     </div>
                     <div className="soft-icon">
                         <Wallet size={20} />
@@ -241,7 +242,7 @@ export default function SalaryPage() {
                 <div className="insight-card">
                     <div>
                         <span>Balance Due</span>
-                        <strong>{totalBalanceAll.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        <strong>{formatCurrency(totalBalanceAll)}</strong>
                     </div>
                     <div className="soft-icon danger">
                         <AlertTriangle size={20} />
@@ -250,7 +251,7 @@ export default function SalaryPage() {
                 <div className="insight-card">
                     <div>
                         <span>Paid Today</span>
-                        <strong>{totalPaidToday.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong>
+                        <strong>{formatCurrency(totalPaidToday)}</strong>
                     </div>
                     <div className="soft-icon primary">
                         <Timer size={20} />
@@ -280,7 +281,7 @@ export default function SalaryPage() {
                                 Export CSV
                             </button>
                         )}
-                        <span className="text-2xl font-bold text-blue-700">{totalPaidToday.toLocaleString()}</span>
+                        <span className="text-2xl font-bold text-blue-700">{formatCurrency(totalPaidToday)}</span>
                     </div>
                 </div>
 
@@ -320,7 +321,7 @@ export default function SalaryPage() {
                                                             </button>
                                                         )}
                                                     </td>
-                                                    <td className="p-3 text-right font-mono font-bold">{p.amount}</td>
+                                                    <td className="p-3 text-right font-mono font-bold">{formatCurrency(p.amount)}</td>
                                                 </tr>
                                             );
                                         })}
@@ -400,13 +401,13 @@ export default function SalaryPage() {
                                             <p className="text-sm text-[var(--color-text-muted)]">{emp.role}</p>
                                         </div>
                                     </div>
-                                    <span className="rate-chip"><span>Rate</span>{emp.dailyRate}</span>
+                                    <span className="rate-chip"><span>Rate</span>{formatCurrency(emp.dailyRate)}</span>
                                 </div>
 
                                 <div className="salary-balance">
                                     <span className="metric-label">{balance > 0 ? 'Balance Due' : 'Settled Balance'}</span>
                                     <strong className={balance > 0 ? 'text-danger' : ''}>
-                                        {balance.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                                        {formatCurrency(balance)}
                                     </strong>
                                     <p className="payment-card-note">
                                         {balance > 0 ? 'Payment recommended' : 'No outstanding balance'}
@@ -420,11 +421,11 @@ export default function SalaryPage() {
                                     </div>
                                     <div className="financial-tile">
                                         <span>Earned</span>
-                                        <strong>{totalEarned.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</strong>
+                                        <strong>{formatCurrency(totalEarned)}</strong>
                                     </div>
                                     <div className="financial-tile">
                                         <span>Paid</span>
-                                        <strong className="text-success">{totalPaid.toLocaleString()}</strong>
+                                        <strong className="text-success">{formatCurrency(totalPaid)}</strong>
                                     </div>
                                 </div>
 
@@ -518,7 +519,7 @@ export default function SalaryPage() {
                                                             <td className="text-sm font-medium">
                                                                 {displayTime || record.status}
                                                             </td>
-                                                            <td className="text-right font-mono">{cost.toFixed(0)}</td>
+                                                            <td className="text-right font-mono">{formatCurrency(cost)}</td>
                                                         </tr>
                                                     )
                                                 })}
@@ -564,7 +565,7 @@ export default function SalaryPage() {
                                                                 </button>
                                                             )}
                                                         </td>
-                                                        <td className="text-right font-mono font-bold text-[var(--color-success)]">{payment.amount}</td>
+                                                        <td className="text-right font-mono font-bold text-[var(--color-success)]">{formatCurrency(payment.amount)}</td>
                                                         <td className="text-right flex justify-end gap-2">
                                                             <button
                                                                 onClick={() => {
@@ -620,7 +621,7 @@ export default function SalaryPage() {
                             <div className="payment-modal-balance">
                                 <div className="flex justify-between mb-1">
                                     <span className="text-gray-500">Balance Due:</span>
-                                    <span className="font-bold">{getFinancials(activeEmployee).balance.toLocaleString()}</span>
+                                    <span className="font-bold">{formatCurrency(getFinancials(activeEmployee).balance)}</span>
                                 </div>
                                 <button
                                     type="button"

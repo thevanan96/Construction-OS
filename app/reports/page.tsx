@@ -6,6 +6,7 @@ import { BadgeDollarSign, CalendarDays, Clock, Download, Filter, FileText, Packa
 import { calculateAttendanceSegmentCosts } from '@/lib/salary';
 import { downloadCSV } from '@/lib/exportUtils';
 import { formatExpenseCategoryLabel } from '@/lib/types';
+import { formatCurrency } from '@/lib/currency';
 
 export default function ReportsPage() {
     const { employees, attendance, expenses, sites } = useApp();
@@ -154,19 +155,19 @@ export default function ReportsPage() {
                     <div className="reports-summary-panel mb-8">
                         <div>
                             <p>Total Site Cost</p>
-                            <strong>{(reportData.totalCost + reportData.totalExpenses).toLocaleString()}</strong>
+                            <strong>{formatCurrency(reportData.totalCost + reportData.totalExpenses)}</strong>
                             <span>{selectedSiteName} · {reportStart} to {reportEnd}</span>
                         </div>
                         <div className="reports-summary-grid">
                             <div>
                                 <BadgeDollarSign size={18} />
                                 <span>Labor Cost</span>
-                                <strong>{reportData.totalCost.toLocaleString()}</strong>
+                                <strong>{formatCurrency(reportData.totalCost)}</strong>
                             </div>
                             <div>
                                 <Package size={18} />
                                 <span>Expenses</span>
-                                <strong>{reportData.totalExpenses.toLocaleString()}</strong>
+                                <strong>{formatCurrency(reportData.totalExpenses)}</strong>
                             </div>
                             <div>
                                 <Clock size={18} />
@@ -213,7 +214,7 @@ export default function ReportsPage() {
                                             <tr key={item.name} className="reports-table-row">
                                                 <td data-label="Employee" className="font-medium text-gray-900">{item.name}</td>
                                                 <td data-label="Total Hours" className="text-right text-gray-600">{item.hours.toFixed(1)}</td>
-                                                <td data-label="Cost Contribution" className="text-right font-mono font-bold text-blue-700">{item.cost.toLocaleString()}</td>
+                                                <td data-label="Cost Contribution" className="text-right font-mono font-bold text-blue-700">{formatCurrency(item.cost)}</td>
                                             </tr>
                                         ))}
                                     {reportData.rows.length === 0 && (
@@ -259,7 +260,7 @@ export default function ReportsPage() {
                                             <td className="font-mono text-sm">{expense.date.split('T')[0]}</td>
                                             <td className="text-sm">{formatExpenseCategoryLabel(expense.category)}</td>
                                             <td className="text-sm text-gray-600">{expense.description}</td>
-                                            <td className="text-right font-mono font-bold text-blue-700">{expense.amount.toLocaleString()}</td>
+                                            <td className="text-right font-mono font-bold text-blue-700">{formatCurrency(expense.amount)}</td>
                                         </tr>
                                     ))}
                                     {reportData.expenseRows.length === 0 && (

@@ -7,6 +7,7 @@ import { useApp } from '@/lib/store';
 import { ArrowLeft, Download, Printer } from 'lucide-react';
 import { getCurrentMonthRange } from '@/lib/dateUtils';
 import { calculateAttendanceSegmentCosts } from '@/lib/salary';
+import { formatCurrency } from '@/lib/currency';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -101,7 +102,7 @@ export default function PayslipPage() {
                     record.role || employee.role,
                     record.site ? (sites.find(s => s.id === record.site)?.name || 'Unknown Site') : '-',
                     hours.toFixed(1),
-                    cost.toFixed(0),
+                    formatCurrency(cost),
                 ])
                 : [['No attendance records in this period.', '', '', '', '']],
             styles: { fontSize: 9 },
@@ -117,7 +118,7 @@ export default function PayslipPage() {
             startY: y + 4,
             head: [['Date', 'Type', 'Notes', 'Amount']],
             body: periodPayments.length > 0
-                ? periodPayments.map(p => [p.date.split('T')[0], formatPaymentType(p.type), p.notes || '-', p.amount.toFixed(0)])
+                ? periodPayments.map(p => [p.date.split('T')[0], formatPaymentType(p.type), p.notes || '-', formatCurrency(p.amount)])
                 : [['No payments recorded in this period.', '', '', '']],
             styles: { fontSize: 9 },
             headStyles: { fillColor: [15, 23, 42] },
@@ -131,9 +132,9 @@ export default function PayslipPage() {
 
         const summaryItems: [string, string][] = [
             ['Total Hours', totalHours.toFixed(1)],
-            ['Total Earned', totalEarned.toFixed(0)],
-            ['Total Paid', totalPaid.toFixed(0)],
-            [balance > 0 ? 'Balance Due' : 'Settled Balance', balance.toFixed(0)],
+            ['Total Earned', formatCurrency(totalEarned)],
+            ['Total Paid', formatCurrency(totalPaid)],
+            [balance > 0 ? 'Balance Due' : 'Settled Balance', formatCurrency(balance)],
         ];
         const colWidth = (PDF_PAGE_RIGHT - PDF_MARGIN_X) / summaryItems.length;
         doc.setFontSize(10);
@@ -224,7 +225,7 @@ export default function PayslipPage() {
                                             {record.site ? (sites.find(s => s.id === record.site)?.name || 'Unknown Site') : '-'}
                                         </td>
                                         <td className="text-right text-sm">{hours.toFixed(1)}</td>
-                                        <td className="text-right font-mono">{cost.toFixed(0)}</td>
+                                        <td className="text-right font-mono">{formatCurrency(cost)}</td>
                                     </tr>
                                 ))}
                                 {segmentCosts.length === 0 && (
@@ -255,7 +256,7 @@ export default function PayslipPage() {
                                         <td className="font-mono text-sm">{payment.date.split('T')[0]}</td>
                                         <td className="text-sm">{formatPaymentType(payment.type)}</td>
                                         <td className="text-sm text-[var(--color-text-muted)]">{payment.notes || '-'}</td>
-                                        <td className="text-right font-mono">{payment.amount.toFixed(0)}</td>
+                                        <td className="text-right font-mono">{formatCurrency(payment.amount)}</td>
                                     </tr>
                                 ))}
                                 {periodPayments.length === 0 && (
@@ -275,15 +276,15 @@ export default function PayslipPage() {
                     </div>
                     <div>
                         <span>Total Earned</span>
-                        <strong>{totalEarned.toFixed(0)}</strong>
+                        <strong>{formatCurrency(totalEarned)}</strong>
                     </div>
                     <div>
                         <span>Total Paid</span>
-                        <strong>{totalPaid.toFixed(0)}</strong>
+                        <strong>{formatCurrency(totalPaid)}</strong>
                     </div>
                     <div className="payslip-summary-balance">
                         <span>{balance > 0 ? 'Balance Due' : 'Settled Balance'}</span>
-                        <strong>{balance.toFixed(0)}</strong>
+                        <strong>{formatCurrency(balance)}</strong>
                     </div>
                 </div>
             </div>
