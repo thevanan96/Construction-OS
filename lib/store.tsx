@@ -48,6 +48,7 @@ interface AppContextType {
     addMaterialTransaction: (transaction: Omit<MaterialTransaction, 'id'>) => Promise<void>;
     deleteMaterialTransaction: (id: string) => Promise<void>;
     updateProfile: (data: Pick<User, 'name' | 'companyName'>) => Promise<void>;
+    deleteAllData: () => Promise<void>;
     logout: () => void;
 }
 
@@ -1217,6 +1218,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const deleteAllData = async () => {
+        if (!user) return;
+
+        // Capture attachments to clean up from storage once the delete actually succeeds.
+        const photoPathsToClean = employees.map(e => e.photoPath).filter((p): p is string => !!p);
+        const paymentReceiptPathsToClean = payments.map(p => p.receiptPath).filter((p): p is string => !!p);
+        const expenseReceiptPathsToClean = expenses.map(e => e.receiptPath).filter((p): p is string => !!p);
+
+        // Delete child tables before parent tables, all scoped to this user.
+        const tablesInOrder = ['material_transactions', 'attendance', 'payments', 'materials', 'expenses', 'employees', 'sites'];
+
+        for (const table of tablesInOrder) {
+            const { error } = await supabase.from(table).delete().eq('user_id', user.id);
+            if (error) {
+                throw new Error(`Failed to delete ${table}: ${error.message}`);
+            }
+        }
+
+        photoPathsToClean.forEach(path => {
+            removeAttachment('employee-photos', path).catch(err => console.error('Error removing employee photo:', err));
+        });
+        paymentReceiptPathsToClean.forEach(path => {
+            removeAttachment('payment-receipts', path).catch(err => console.error('Error removing payment receipt:', err));
+        });
+        expenseReceiptPathsToClean.forEach(path => {
+            removeAttachment('expense-receipts', path).catch(err => console.error('Error removing expense receipt:', err));
+        });
+
+        setEmployees([]);
+        setAttendance([]);
+        setPayments([]);
+        setExpenses([]);
+        setMaterials([]);
+        setMaterialTransactions([]);
+        setSites([]);
+    };
+
     const logout = async () => {
         // 1. Clear local state immediately
         setUser(null);
@@ -1243,6 +1281,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             addExpense, updateExpense, deleteExpense,
             addMaterial, updateMaterial, deleteMaterial, addMaterialTransaction, deleteMaterialTransaction,
             updateProfile,
+            deleteAllData,
             logout
         }}>
             {children}
