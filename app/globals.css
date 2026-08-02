@@ -3940,7 +3940,7 @@ tbody tr:hover td {
 html,
 body {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 img,
@@ -4420,6 +4420,16 @@ canvas {
 }
 
 /* Attendance Phase 1: scoped workflow polish without changing app-wide layout primitives. */
+.attendance-header {
+  position: sticky;
+  top: var(--header-height);
+  z-index: 30;
+  background: var(--color-bg-main);
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
 .attendance-header-toolbar {
   justify-content: flex-end;
 }
