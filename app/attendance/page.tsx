@@ -132,8 +132,18 @@ export default function AttendancePage() {
         return 'not-marked';
     };
 
+    const getExistingRecord = (employeeId: string) => {
+        return getRecords(employeeId).find(record => record.site || record.role);
+    };
+
     const getSelectedSite = (employeeId: string): string => {
-        return employeeSites[getPendingKey(employeeId)] || (activeSites.length > 0 ? activeSites[0].id : '');
+        const pending = employeeSites[getPendingKey(employeeId)];
+        if (pending !== undefined) return pending;
+
+        const existingSite = getExistingRecord(employeeId)?.site;
+        if (existingSite !== undefined) return existingSite;
+
+        return activeSites.length > 0 ? activeSites[0].id : '';
     };
 
     const getSiteOptions = (currentSiteId?: string) => {
@@ -147,7 +157,13 @@ export default function AttendancePage() {
     };
 
     const getSelectedRole = (employee: Employee): string => {
-        return employeeRoles[getPendingKey(employee.id)] || employee.role;
+        const pending = employeeRoles[getPendingKey(employee.id)];
+        if (pending !== undefined) return pending;
+
+        const existingRole = getExistingRecord(employee.id)?.role;
+        if (existingRole !== undefined) return existingRole;
+
+        return employee.role;
     };
 
     const setStatus = (employee: Employee, status: AttendanceStatus) => {
@@ -453,7 +469,7 @@ export default function AttendancePage() {
                                                             aria-label={`${emp.name} site`}
                                                         >
                                                             <option value="">No Site</option>
-                                                            {activeSites.map(s => (
+                                                            {getSiteOptions(selectedSite).map(s => (
                                                                 <option key={s.id} value={s.id}>{s.name}</option>
                                                             ))}
                                                         </select>
@@ -560,7 +576,7 @@ export default function AttendancePage() {
                                                 onChange={(e) => setEmployeeSites(prev => ({ ...prev, [getPendingKey(emp.id)]: e.target.value }))}
                                             >
                                                 <option value="">No Site</option>
-                                                {activeSites.map(s => (
+                                                {getSiteOptions(selectedSite).map(s => (
                                                     <option key={s.id} value={s.id}>{s.name}</option>
                                                 ))}
                                             </select>
