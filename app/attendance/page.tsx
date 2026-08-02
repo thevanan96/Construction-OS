@@ -106,17 +106,13 @@ export default function AttendancePage() {
         const date = new Date(selectedDate);
         date.setDate(date.getDate() + days);
         setSelectedDate(date.toISOString().split('T')[0]);
-        setEmployeeSites({});
-        setEmployeeRoles({});
-        setAdvanceAmounts({});
     };
 
     const handleSelectedDateChange = (date: string) => {
         setSelectedDate(date);
-        setEmployeeSites({});
-        setEmployeeRoles({});
-        setAdvanceAmounts({});
     };
+
+    const getPendingKey = (employeeId: string) => `${selectedDate}:${employeeId}`;
 
     const getRecords = (employeeId: string) => {
         return attendance
@@ -137,7 +133,7 @@ export default function AttendancePage() {
     };
 
     const getSelectedSite = (employeeId: string): string => {
-        return employeeSites[employeeId] || (activeSites.length > 0 ? activeSites[0].id : '');
+        return employeeSites[getPendingKey(employeeId)] || (activeSites.length > 0 ? activeSites[0].id : '');
     };
 
     const getSiteOptions = (currentSiteId?: string) => {
@@ -151,7 +147,7 @@ export default function AttendancePage() {
     };
 
     const getSelectedRole = (employee: Employee): string => {
-        return employeeRoles[employee.id] || employee.role;
+        return employeeRoles[getPendingKey(employee.id)] || employee.role;
     };
 
     const setStatus = (employee: Employee, status: AttendanceStatus) => {
@@ -229,7 +225,7 @@ export default function AttendancePage() {
     const recordAdvancePayment = async (event: FormEvent, employee: Employee) => {
         event.preventDefault();
 
-        const amount = Number(advanceAmounts[employee.id]);
+        const amount = Number(advanceAmounts[getPendingKey(employee.id)]);
         if (!amount || amount <= 0) return;
 
         await addPayment({
@@ -240,7 +236,7 @@ export default function AttendancePage() {
             notes: 'Advance Payment'
         });
 
-        setAdvanceAmounts(prev => ({ ...prev, [employee.id]: '' }));
+        setAdvanceAmounts(prev => ({ ...prev, [getPendingKey(employee.id)]: '' }));
     };
 
     const deleteAdvancePayments = async (employee: Employee, paymentIds: string[]) => {
@@ -440,7 +436,7 @@ export default function AttendancePage() {
                                                     <td data-label="Role">
                                                         <select
                                                             value={selectedRole}
-                                                            onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                            onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [getPendingKey(emp.id)]: e.target.value }))}
                                                             className="input attendance-quick-select"
                                                             aria-label={`${emp.name} role`}
                                                         >
@@ -453,7 +449,7 @@ export default function AttendancePage() {
                                                         <select
                                                             className="input attendance-quick-select"
                                                             value={selectedSite}
-                                                            onChange={(e) => setEmployeeSites(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                            onChange={(e) => setEmployeeSites(prev => ({ ...prev, [getPendingKey(emp.id)]: e.target.value }))}
                                                             aria-label={`${emp.name} site`}
                                                         >
                                                             <option value="">No Site</option>
@@ -548,7 +544,7 @@ export default function AttendancePage() {
                                             <span>Role</span>
                                             <select
                                                 value={selectedRole}
-                                                onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                onChange={(e) => setEmployeeRoles(prev => ({ ...prev, [getPendingKey(emp.id)]: e.target.value }))}
                                                 className="input"
                                             >
                                                 {roleOptions.map(role => (
@@ -561,7 +557,7 @@ export default function AttendancePage() {
                                             <select
                                                 className="input"
                                                 value={selectedSite}
-                                                onChange={(e) => setEmployeeSites(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                onChange={(e) => setEmployeeSites(prev => ({ ...prev, [getPendingKey(emp.id)]: e.target.value }))}
                                             >
                                                 <option value="">No Site</option>
                                                 {activeSites.map(s => (
@@ -691,8 +687,8 @@ export default function AttendancePage() {
                                                     type="number"
                                                     className="input"
                                                     placeholder="0.00"
-                                                    value={advanceAmounts[emp.id] || ''}
-                                                    onChange={(e) => setAdvanceAmounts(prev => ({ ...prev, [emp.id]: e.target.value }))}
+                                                    value={advanceAmounts[getPendingKey(emp.id)] || ''}
+                                                    onChange={(e) => setAdvanceAmounts(prev => ({ ...prev, [getPendingKey(emp.id)]: e.target.value }))}
                                                     min="1"
                                                     step="1"
                                                 />
