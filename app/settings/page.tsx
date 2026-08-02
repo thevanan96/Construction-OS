@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle2, Mail, Save, Settings, ShieldAlert, Trash2, UserRound } from 'lucide-react';
 
 export default function SettingsPage() {
-    const { user, updateProfile } = useApp();
+    const { user, updateProfile, deleteAllData } = useApp();
     const router = useRouter();
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -22,6 +22,12 @@ export default function SettingsPage() {
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteMessage, setDeleteMessage] = useState('');
     const [deleteError, setDeleteError] = useState('');
+
+    const [isWipeModalOpen, setIsWipeModalOpen] = useState(false);
+    const [wipeConfirmation, setWipeConfirmation] = useState('');
+    const [isWiping, setIsWiping] = useState(false);
+    const [wipeMessage, setWipeMessage] = useState('');
+    const [wipeError, setWipeError] = useState('');
 
     useEffect(() => {
         setFormData({
@@ -94,8 +100,34 @@ export default function SettingsPage() {
         setDeleteError('');
     };
 
+    const handleConfirmWipe = async () => {
+        setWipeError('');
+        setWipeMessage('');
+        setIsWiping(true);
+
+        try {
+            await deleteAllData();
+            setIsWipeModalOpen(false);
+            setWipeConfirmation('');
+            setWipeMessage('All workspace data has been deleted.');
+        } catch (err) {
+            setWipeError(err instanceof Error ? err.message : 'Failed to delete all data.');
+        } finally {
+            setIsWiping(false);
+        }
+    };
+
+    const handleCloseWipeModal = () => {
+        if (isWiping) return;
+
+        setIsWipeModalOpen(false);
+        setWipeConfirmation('');
+        setWipeError('');
+    };
+
     const hasChanges = formData.name !== (user?.name || '') || formData.companyName !== (user?.companyName || '');
     const canDelete = deleteConfirmation === 'DELETE' && !isDeleting;
+    const canWipeAll = wipeConfirmation === 'DELETE ALL DATA' && !isWiping;
 
     return (
         <div className="shell settings-page">
@@ -209,6 +241,49 @@ export default function SettingsPage() {
                         <div className="section-header mb-4">
                             <div>
                                 <div className="settings-section-label danger">Danger Zone</div>
+                                <h2 className="text-xl font-bold text-danger">Delete All Data</h2>
+                                <p className="page-subtitle">
+                                    Permanently clear employees, sites, attendance, payments, expenses, and materials. Your account and login stay active.
+                                </p>
+                            </div>
+                            <div className="soft-icon danger">
+                                <Trash2 size={20} />
+                            </div>
+                        </div>
+
+                        {wipeMessage && (
+                            <div className="settings-alert success">
+                                <CheckCircle2 size={18} />
+                                <span>{wipeMessage}</span>
+                            </div>
+                        )}
+
+                        {wipeError && (
+                            <div className="settings-alert danger">
+                                <span>{wipeError}</span>
+                            </div>
+                        )}
+
+                        <div className="toolbar settings-actions">
+                            <button
+                                type="button"
+                                className="btn btn-danger-subtle"
+                                onClick={() => {
+                                    setWipeError('');
+                                    setWipeMessage('');
+                                    setIsWipeModalOpen(true);
+                                }}
+                            >
+                                <Trash2 size={18} />
+                                Delete All Data
+                            </button>
+                        </div>
+                    </section>
+
+                    <section className="panel settings-form settings-danger-zone">
+                        <div className="section-header mb-4">
+                            <div>
+                                <div className="settings-section-label danger">Danger Zone</div>
                                 <h2 className="text-xl font-bold text-danger">Delete Account</h2>
                                 <p className="page-subtitle">
                                     Permanently delete your account and associated FieldMetrik data. Use this only when closing the workspace.
@@ -273,6 +348,73 @@ export default function SettingsPage() {
                     </div>
                 </aside>
             </section>
+
+            {isWipeModalOpen && (
+                <div className="modal-backdrop">
+                    <div className="modal-card max-w-md">
+                        <div className="modal-header">
+                            <div>
+                                <h2 className="modal-title text-danger">Delete All Data</h2>
+                                <p className="modal-subtitle">
+                                    This is permanent and cannot be undone.
+                                </p>
+                            </div>
+                            <div className="soft-icon danger">
+                                <Trash2 size={20} />
+                            </div>
+                        </div>
+
+                        <div className="list-stack">
+                            <div className="settings-alert danger">
+                                <span>
+                                    This will permanently delete all employees, sites, attendance, payments, expenses, and materials. Your account and login will remain active.
+                                </span>
+                            </div>
+
+                            <div className="form-field">
+                                <label className="label" htmlFor="wipeConfirmation">
+                                    Type DELETE ALL DATA to confirm
+                                </label>
+                                <input
+                                    id="wipeConfirmation"
+                                    type="text"
+                                    className="input"
+                                    value={wipeConfirmation}
+                                    onChange={(event) => setWipeConfirmation(event.target.value)}
+                                    placeholder="DELETE ALL DATA"
+                                    disabled={isWiping}
+                                />
+                            </div>
+
+                            {wipeError && (
+                                <div className="settings-alert danger">
+                                    <span>{wipeError}</span>
+                                </div>
+                            )}
+
+                            <div className="toolbar settings-actions">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline"
+                                    onClick={handleCloseWipeModal}
+                                    disabled={isWiping}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    className="btn btn-danger"
+                                    onClick={handleConfirmWipe}
+                                    disabled={!canWipeAll}
+                                >
+                                    <Trash2 size={18} />
+                                    {isWiping ? 'Deleting' : 'Delete'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isDeleteModalOpen && (
                 <div className="modal-backdrop">
