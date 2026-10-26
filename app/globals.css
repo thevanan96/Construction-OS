@@ -432,7 +432,42 @@ textarea,
   color: var(--color-danger);
 }
 
-@media (max-width: 900px) {
+.navbar-brand,
+.navbar-brand img,
+.navbar-right {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1440px) {
+  .navbar {
+    gap: 12px;
+    padding: 0 20px;
+  }
+
+  .navbar-left {
+    gap: 16px;
+  }
+
+  .navbar-menu ul {
+    gap: 2px;
+  }
+
+  .nav-link-horizontal {
+    padding: 0 9px;
+    font-size: 0.82rem;
+  }
+
+  .nav-link-horizontal.active::after {
+    right: 9px;
+    left: 9px;
+  }
+
+  .navbar .user-info {
+    display: none;
+  }
+}
+
+@media (max-width: 1180px) {
   .navbar-menu,
   .navbar-desktop-only,
   .vertical-divider {
