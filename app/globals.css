@@ -2315,6 +2315,27 @@ tbody tr:hover td {
   font-weight: 650;
 }
 
+.btn-google {
+  gap: 10px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--color-text-light);
+  font-size: 0.8rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
 .auth-success {
   display: flex;
   align-items: center;
